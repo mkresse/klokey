@@ -1,2 +1,5 @@
 .idea/*
 bower_components/*
+lib/*
+node_modules/*
+out/*
