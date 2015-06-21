@@ -16,7 +16,8 @@ var vars = {
     SESSION_KEY: 'secr3t',
     CLEANUP_DELAY: 3000,
     MISSING_TIMEOUT: 5000,
-    MISSING_MAIL_TIMEOUT: 3000
+    MISSING_MAIL_TIMEOUT: 3000,
+    QUEUE_TIMEOUT: 10000
 };
 
 var messages = {
@@ -39,7 +40,8 @@ var state = {
 };
 
 var internalState = {
-    timer: undefined,
+    timerMissing: undefined,
+    timerQueue: undefined,
     clientConnectionsMap: {}
 };
 
@@ -48,6 +50,7 @@ var sessionMiddleware = session({
     name: vars.SESSION_NAME
 });
 
+// execute session middleware for http traffic
 app.use(sessionMiddleware,
     function (req, res, next) {
         console.log('request: %s %d: %s', req.session.clientId, Date.now(), req.originalUrl);
@@ -90,6 +93,7 @@ app.get('/switch', function (req, res) {
 function addToQueue(clientId) {
     if (!_.findWhere(state.queue, {clientId: clientId})) {
         state.queue.push({clientId: clientId});
+        updateQueueTimer();
         io.emit('message', {type: messages.EV_RESERVATION_QUEUED, state: state});
         return true;
     }
@@ -101,7 +105,38 @@ function removeFromQueue(clientId) {
     state.queue = _.reject(state.queue, function(entry) {
         return entry.clientId === clientId;
     });
+    updateQueueTimer();
     io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state});
+}
+
+function updateQueueTimer() {
+    if (internalState.timerQueue && (!state.keyPresent || state.queue.length < 1 || !state.queue[0].expires)) {
+        // delete obsolete timer
+        clearTimeout(internalState.timerQueue);
+        internalState.timerQueue = undefined;
+    }
+
+    for (var i=0; i<state.queue.length; i++) {
+        var entry = state.queue[i];
+        if (state.keyPresent && (i === 0)) {
+            if (!entry.expires) {
+                var clientId = entry.clientId;
+                internalState.timerQueue = setTimeout(function() {
+                    onQueueTimerExpired(clientId);
+                }, vars.QUEUE_TIMEOUT);
+                entry.expires = Date.now() + vars.QUEUE_TIMEOUT;
+            }
+        } else {
+            entry.expires = undefined;
+        }
+    }
+}
+
+function onQueueTimerExpired(clientId) {
+    console.log('timer expired for client: ', clientId);
+
+    internalState.timerQueue = undefined;
+    removeFromQueue(clientId);
 }
 
 function onKeyTaken() {
@@ -111,9 +146,13 @@ function onKeyTaken() {
         console.log('key was TAKEN');
 
         state.keyPresent = false;
-        internalState.timer = setTimeout(function() {
+        internalState.timerMissing = setTimeout(function() {
             onKeyWentMissing();
         }, vars.MISSING_TIMEOUT);
+
+        if (state.queue.length > 0) {
+            removeFromQueue(state.queue[0].clientId);
+        }
 
         io.emit('message', {type: messages.EV_KEY_TAKEN, state: state});
     }
@@ -123,7 +162,7 @@ function onKeyWentMissing() {
     console.log('key went MISSING');
 
     state.keyMissing = true;
-    internalState.timer = setTimeout(function() {
+    internalState.timerMissing = setTimeout(function() {
         onKeyMissingMail();
     }, vars.MISSING_MAIL_TIMEOUT);
 
@@ -131,7 +170,7 @@ function onKeyWentMissing() {
 }
 
 function onKeyMissingMail() {
-    internalState.timer = undefined;
+    internalState.timerMissing = undefined;
 
     // send mail to EVERYONE!
 }
@@ -144,9 +183,11 @@ function onKeyReturned() {
 
         state.keyPresent = true;
         state.keyMissing = false;
-        if (internalState.timer) {
-            clearTimeout(internalState.timer);
+        if (internalState.timerMissing) {
+            clearTimeout(internalState.timerMissing);
         }
+
+        updateQueueTimer();
 
         io.emit('message', {type: messages.EV_KEY_RETURNED, state: state});
     }

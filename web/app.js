@@ -91,6 +91,9 @@ app.controller("MainController", function($scope, KloKeyService) {
         $scope.isInQueue = false;
         if (data.state && data.state.queue) {
             angular.forEach(data.state.queue, function(it) {
+                if (it.expires) {
+                    it.remaining = (it.expires - Date.now()) / 1000;
+                }
                 console.log(it.clientId, ' =?', $scope.clientId);
                 if (it.clientId === $scope.clientId) {
                     $scope.isInQueue = true;
@@ -101,5 +104,20 @@ app.controller("MainController", function($scope, KloKeyService) {
 
         $scope.$apply();
     });
+
+
+    function updateTimer() {
+        if ($scope.state) {
+            angular.forEach($scope.state.queue, function(it) {
+                if (it.expires) {
+                    it.remaining = ((it.expires - Date.now()) / 1000);
+                    $scope.$apply();
+                }
+            });
+        }
+        setTimeout(updateTimer, 100);
+    }
+    setTimeout(updateTimer, 100);
+
 
 });

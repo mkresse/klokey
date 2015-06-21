@@ -97,7 +97,9 @@
 
             </div>
             <ul>
-                <li ng-repeat="entry in state.queue" ng-class="{'self': entry.clientId == clientId}">{{entry.clientId}}</li>
+                <li ng-repeat="entry in state.queue" ng-class="{'self': entry.clientId == clientId}">{{entry.clientId}}
+                <span ng-if="entry.remaining">{{entry.remaining}}</span>
+                </li>
             </ul>
             <md-button class="md-accent" ng-click="enqueue()">{{isInQueue ? 'Weggehen' : 'Anstellen'}}</md-button>
             <div>{{state}}</div>
