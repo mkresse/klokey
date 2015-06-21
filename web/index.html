@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+    <title>KloKey</title>
+    <style type="text/css">
+
+        @font-face {
+            font-family:"icomoon";
+            src:url("https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.eot");
+            font-weight:normal;
+            font-style:normal;
+        }
+        @font-face {
+            font-family: 'icomoon';
+            src:url('https://rawgit.com/angular/material/master/docs/app/fonts/icomoon.eot?-cmq1um');
+            src:url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.eot?#iefix-cmq1um') format('embedded-opentype'),
+            url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.woff?-cmq1um') format('woff'),
+            url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.ttf?-cmq1um') format('truetype'),
+            url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.svg?-cmq1um#icomoon') format('svg');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+
+        .state.ng-enter, .state.ng-leave {
+            -webkit-transition:all linear 0.2s;
+            transition:all linear 0.2s;
+        }
+
+        .state.ng-enter, .state.ng-leave.ng-leave-active {
+            opacity: 0;
+        }
+
+        .state.ng-leave, .state.ng-enter.ng-enter-active {
+            opacity: 1;
+        }
+
+        .container {
+            position: relative;
+            height: 80px;
+        }
+
+        .state {
+            position: absolute;
+            top: 0;
+        }
+
+        div {
+            xborder: 1px solid red;
+        }
+
+        li.self {
+            font-weight: bold;
+            color: fuchsia;
+        }
+
+        h1 small {
+           font-size: small;
+        }
+    </style>
+    <link rel="stylesheet" href="lib/angular-material/angular-material.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=RobotoDraft:300,400,500,700,400italic">
+    <meta name="viewport" content="initial-scale=1" />
+</head>
+
+<body ng-app="klokey" layout="column">
+
+
+<md-toolbar layout="row">
+    <div class="md-toolbar-tools">
+        <md-button ng-click="toggleSidenav('left')" hide-gt-sm class="md-icon-button">
+            <md-icon aria-label="Menu" md-svg-icon="https://s3-us-west-2.amazonaws.com/s.cdpn.io/68133/menu.svg"></md-icon>
+        </md-button>
+        <h1>KloKey</h1>
+    </div>
+</md-toolbar>
+
+<div layout="row" flex>
+    <!-- md-sidenav layout="column" class="md-sidenav-left md-whiteframe-z2" md-component-id="left" md-is-locked-open="$mdMedia('gt-sm')">
+
+    </md-sidenav -->
+
+    <div layout="column" flex id="content" ng-controller="MainController">
+        <md-content layout="column" flex class="md-padding">
+            <div class="container">
+                <div ng-if="state">
+                    <h1 id="present" class="state" ng-if="state.keyPresent" class="md-display-3">Frei</h1>
+                    <h1 id="taken" class="state" ng-if="!state.keyPresent" class="md-display-3">Unterwegs...
+
+                        <small id="lost"  ng-if="state.keyMissing" class="md-display-1">Vermisst</small>
+                    </h1>
+
+                    <md-icon md-font-icon="icon-home"></md-icon>
+
+                </div>
+
+
+            </div>
+            <ul>
+                <li ng-repeat="entry in state.queue" ng-class="{'self': entry.clientId == clientId}">{{entry.clientId}}</li>
+            </ul>
+            <md-button class="md-accent" ng-click="enqueue()">{{isInQueue ? 'Weggehen' : 'Anstellen'}}</md-button>
+            <div>{{state}}</div>
+
+        </md-content>
+    </div>
+</div>
+
+
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="lib/jquery/jquery.js"></script>
+<script type="text/javascript" src="lib/angular/angular.js"></script>
+<script type="text/javascript" src="lib/angular-animate/angular-animate.js"></script>
+<script type="text/javascript" src="lib/angular-aria/angular-aria.js"></script>
+<script type="text/javascript" src="lib/angular-material/angular-material.js"></script>
+
+<script type="text/javascript" src="app.js"></script>
+
+</body>
+</html>

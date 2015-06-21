@@ -1,0 +1,29 @@
+{
+  "name": "KloKey",
+  "version": "0.0.1",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.4.0",
+    "angular-animate": "~1.4.0",
+    "angular-cookies": "~1.4.0",
+    "angular-material": "~0.9.8",
+    "bootstrap": "~3.3.4",
+    "jquery": "~2.1.4"
+  },
+  "install": {
+    "path": "lib",
+    "sources": {
+      "bootstrap": [
+        "bower_components/bootstrap/dist/**"
+      ]
+    }
+  },
+  "devDependencies": {}
+}
