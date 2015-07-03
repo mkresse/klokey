@@ -4,12 +4,19 @@ var express = require('express');
 var session = require('cookie-session');
 var http = require('http');
 var socket = require('socket.io');
+var SerialPort  = require('serialport').SerialPort;
 var shortid = require('shortid');
 var _ = require('underscore');
 
 var app = express();
 var server = http.createServer(app);
 var io = socket(server);
+var serialPort = new SerialPort('/dev/ttyAMA0', {
+    baudrate: 9600,
+    databits: 8,
+    parity: 'none',
+    stopbits: 1
+});
 
 var vars = {
     SESSION_NAME: 'kk_sess',
@@ -17,6 +24,7 @@ var vars = {
     CLEANUP_DELAY: 3000,
     MISSING_TIMEOUT: 5000,
     MISSING_MAIL_TIMEOUT: 3000,
+    RFID_WATCHDOG_TIMEOUT: 5000,
     QUEUE_TIMEOUT: 10000
 };
 
@@ -42,6 +50,7 @@ var state = {
 var internalState = {
     timerMissing: undefined,
     timerQueue: undefined,
+    timerRFIDWatchdog: undefined,
     clientConnectionsMap: {}
 };
 
@@ -89,6 +98,29 @@ app.get('/switch', function (req, res) {
     res.json(state);
 });
 
+serialPort.on("open", function (error) {
+    if (error) {
+        console.log('failed to open serial port: ' + error);
+    } else {
+        console.log('opened serial port');
+
+        serialPort.on('data', function (data) {
+            console.log('serial data received: ' + data);
+
+            if (internalState.timerRFIDWatchdog) {
+                clearTimeout(internalState.timerRFIDWatchdog);
+            }
+
+            internalState.timerRFIDWatchdog = setTimeout(function() {
+                onRFIDWatchdogExpired();
+            }, vars.RFID_WATCHDOG_TIMEOUT);
+
+            if (!state.keyPresent) {
+                onKeyReturned();
+            }
+        });
+    }
+});
 
 function addToQueue(clientId) {
     if (!_.findWhere(state.queue, {clientId: clientId})) {
@@ -130,6 +162,14 @@ function updateQueueTimer() {
             entry.expires = undefined;
         }
     }
+}
+
+function onRFIDWatchdogExpired() {
+    console.log('RFID timer expired, assuming key taken');
+
+    internalState.timerRFIDWatchdog = undefined;
+
+    onKeyTaken();
 }
 
 function onQueueTimerExpired(clientId) {
