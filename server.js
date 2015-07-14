@@ -24,7 +24,7 @@ var vars = {
     CLEANUP_DELAY: 3000,
     MISSING_TIMEOUT: 5000,
     MISSING_MAIL_TIMEOUT: 3000,
-    RFID_WATCHDOG_TIMEOUT: 5000,
+    RFID_WATCHDOG_TIMEOUT: 3500,
     QUEUE_TIMEOUT: 10000
 };
 
@@ -105,18 +105,20 @@ serialPort.on("open", function (error) {
         console.log('opened serial port');
 
         serialPort.on('data', function (data) {
-            console.log('serial data received: ' + data);
+            if (data && data.length && data[0]) {
+                console.log('serial data received: ' + data);
 
-            if (internalState.timerRFIDWatchdog) {
-                clearTimeout(internalState.timerRFIDWatchdog);
-            }
+                if (internalState.timerRFIDWatchdog) {
+                    clearTimeout(internalState.timerRFIDWatchdog);
+                }
 
-            internalState.timerRFIDWatchdog = setTimeout(function() {
-                onRFIDWatchdogExpired();
-            }, vars.RFID_WATCHDOG_TIMEOUT);
+                internalState.timerRFIDWatchdog = setTimeout(function() {
+                    onRFIDWatchdogExpired();
+                }, vars.RFID_WATCHDOG_TIMEOUT);
 
-            if (!state.keyPresent) {
-                onKeyReturned();
+                if (!state.keyPresent) {
+                    onKeyReturned();
+                }
             }
         });
     }
