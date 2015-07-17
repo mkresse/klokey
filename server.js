@@ -4,19 +4,11 @@ var express = require('express');
 var session = require('cookie-session');
 var http = require('http');
 var socket = require('socket.io');
-var SerialPort  = require('serialport').SerialPort;
 var shortid = require('shortid');
 var _ = require('underscore');
 
-var app = express();
-var server = http.createServer(app);
-var io = socket(server);
-var serialPort = new SerialPort('/dev/ttyAMA0', {
-    baudrate: 9600,
-    databits: 8,
-    parity: 'none',
-    stopbits: 1
-});
+var sensorModule = require('./sensor.js');
+var display = require('./display.js');
 
 var vars = {
     SESSION_NAME: 'kk_sess',
@@ -27,6 +19,35 @@ var vars = {
     RFID_WATCHDOG_TIMEOUT: 3500,
     QUEUE_TIMEOUT: 10000
 };
+
+display.init();
+var sensor = sensorModule.init(vars);
+
+sensor.on('error', function() {
+    process.exit(1);
+});
+
+sensor.on('open', function() {
+    console.log('Current gid: ' + process.getgid());
+    console.log('Current uid: ' + process.getuid());
+
+    var gid = parseInt(process.env.SUDO_GID);
+    if (gid) {
+        process.setgid(gid);
+        console.log('Switched to gid: ' + process.getgid());
+    }
+
+    var uid = parseInt(process.env.SUDO_UID);
+    if (uid) {
+        process.setuid(uid);
+        console.log('Switched to uid: ' + process.getuid());
+    }
+});
+
+
+var app = express();
+var server = http.createServer(app);
+var io = socket(server);
 
 var messages = {
     HELLO: 'HELLO',
@@ -50,7 +71,6 @@ var state = {
 var internalState = {
     timerMissing: undefined,
     timerQueue: undefined,
-    timerRFIDWatchdog: undefined,
     clientConnectionsMap: {}
 };
 
@@ -98,32 +118,6 @@ app.get('/switch', function (req, res) {
     res.json(state);
 });
 
-serialPort.on("open", function (error) {
-    if (error) {
-        console.log('failed to open serial port: ' + error);
-    } else {
-        console.log('opened serial port');
-
-        serialPort.on('data', function (data) {
-            if (data && data.length && data[0]) {
-                console.log('serial data received: ' + data);
-
-                if (internalState.timerRFIDWatchdog) {
-                    clearTimeout(internalState.timerRFIDWatchdog);
-                }
-
-                internalState.timerRFIDWatchdog = setTimeout(function() {
-                    onRFIDWatchdogExpired();
-                }, vars.RFID_WATCHDOG_TIMEOUT);
-
-                if (!state.keyPresent) {
-                    onKeyReturned();
-                }
-            }
-        });
-    }
-});
-
 function addToQueue(clientId) {
     if (!_.findWhere(state.queue, {clientId: clientId})) {
         state.queue.push({clientId: clientId});
@@ -166,13 +160,17 @@ function updateQueueTimer() {
     }
 }
 
-function onRFIDWatchdogExpired() {
+sensor.on('RFIDWatchdogExpired', function() {
     console.log('RFID timer expired, assuming key taken');
 
-    internalState.timerRFIDWatchdog = undefined;
-
     onKeyTaken();
-}
+});
+
+sensor.on('RFIDDataReceived', function() {
+    if (!state.keyPresent) {
+        onKeyReturned();
+    }
+});
 
 function onQueueTimerExpired(clientId) {
     console.log('timer expired for client: ', clientId);
@@ -186,6 +184,7 @@ function onKeyTaken() {
         console.warn('illegal state - ignoring taken event');
     } else {
         console.log('key was TAKEN');
+        display.color(0x0000ff);
 
         state.keyPresent = false;
         internalState.timerMissing = setTimeout(function() {
@@ -202,6 +201,7 @@ function onKeyTaken() {
 
 function onKeyWentMissing() {
     console.log('key went MISSING');
+    display.color(0xff0000);
 
     state.keyMissing = true;
     internalState.timerMissing = setTimeout(function() {
@@ -222,6 +222,7 @@ function onKeyReturned() {
         console.warn('illegal state - ignoring returned event');
     } else {
         console.log('key was RETURNED');
+        display.color(0x00ff00);
 
         state.keyPresent = true;
         state.keyMissing = false;
