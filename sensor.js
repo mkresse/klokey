@@ -2,6 +2,7 @@
 
 var EventEmitter =  require('events').EventEmitter;
 var SerialPort = require('serialport').SerialPort;
+var GPIO = require('onoff').Gpio;
 
 exports.init = function(options) {
     var timerRFIDWatchdog;
@@ -22,6 +23,16 @@ exports.init = function(options) {
                 eventEmitter.emit("error");
             } else {
                 console.log('opened serial port');
+
+                var resetPin = new GPIO(17, 'out');
+                var reset = function() {
+                    resetPin.writeSync(0);
+                    setTimeout(function() {
+                        resetPin.writeSync(1);
+                    }, 50);
+                    setTimeout(reset, 3000);
+                };
+                reset();
 
                 eventEmitter.emit("open");
 
