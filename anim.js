@@ -15,10 +15,6 @@ var debuglog = util.debuglog('anim');
 
 var functions = {
     'towards': function(led) {
-        //var current = Chromath.towards(this.args.from[led], this.args.to[led], (this.cur+1) / this.length);
-        //debuglog('EXEC %d: %s (%d)', led, current.toHexString(), current.valueOf());
-        //display.PIXEL_DATA[led] = current.valueOf();
-
         var by = (this.cur+1) / this.length;
         var to = this.args.to[led];
         var from = this.args.from[led];
@@ -34,18 +30,19 @@ var functions = {
 };
 
 var interpolations = {
-    'linear': function(from, to, by) {
-        return from + (to-from) * by;
+    'linear': function() {
+        return function (from, to, by) {
+            return from + (to - from) * by;
+        };
     },
 
-    'cubic': function(from, to, by) {
-        // todo
-        return this.linear(from, to, by);
+    'gamma': function(arg) {
+        return function(from, to, by) {
+            var frac = (by >= 0) ? Math.pow(by, arg) : 1-Math.pow(by, arg);
+            return from + (to-from) * frac;
+        };
     }
 };
-
-console.time("tick");
-
 
 var sum = [0,0];
 
@@ -98,7 +95,7 @@ function overlay(target, bottom, top, alpha) {
     target[2] = bottom[2] + (top[2]-bottom[2]) * alpha;
 }
 
-exports.addAmination = function(leds, from, to, time, done) {
+exports.addAmination = function(leds, from, to, time, done, gamma) {
     var fromArray = new Array(display.NUM_LEDS);
     var toArray = new Array(display.NUM_LEDS);
 
@@ -122,12 +119,10 @@ exports.addAmination = function(leds, from, to, time, done) {
             //console.log('led ' + led + " cur : ", col2str(current));
             //console.log('led ' + led + " from: ", col2str(fromArray[led]) + " (rel: " + from + " a:" + from[3] + ")");
             //console.log('led ' + led + " to:   ",   col2str(toArray[led]) + " (rel: " + to + " a:" + to[3] + ")");
-
-            //var current = new Chromath(display.PIXEL_DATA[led]);
-            //fromArray[led] = current.overlay(from, from.a);
-            //toArray[led] = current.overlay(to, to.a);
         }
     }
+
+    var interpolation = (gamma && (gamma !== 1)) ? interpolations.gamma(gamma) : interpolations.linear();
 
     var cmd = {
         ledmask: leds,
@@ -137,7 +132,7 @@ exports.addAmination = function(leds, from, to, time, done) {
             to: toArray
         },
         length: time / interval,
-        interpolation: interpolations.linear,
+        interpolation: interpolation,
         done: done,
         cur: 0
     };
