@@ -38,7 +38,7 @@ exports.init = function() {
         process.nextTick(function () { process.exit(0); });
     });
 
-    pixelData[0] = 0xffffff;
+    //pixelData[0] = 0xffffff;
     exports.render();
 };
 

@@ -1,13 +1,11 @@
 "use strict";
 
 var util = require('util');
-var Chromath = require('chromath');
-
 var display = require('./display.js');
 
 var queue = [];
 
-var interval = 1000;
+var interval = 25;
 var ticks = 0;
 
 var debuglog = util.debuglog('anim');
@@ -15,7 +13,7 @@ var debuglog = util.debuglog('anim');
 
 var functions = {
     'towards': function(led) {
-        var by = (this.cur+1) / this.length;
+        var by = this.cur / this.length;
         var to = this.args.to[led];
         var from = this.args.from[led];
         display.PIXEL_DATA[led] =
@@ -38,7 +36,7 @@ var interpolations = {
 
     'gamma': function(arg) {
         return function(from, to, by) {
-            var frac = (by >= 0) ? Math.pow(by, arg) : 1-Math.pow(by, arg);
+            var frac = (arg >= 0) ? Math.pow(by, arg) : (1-Math.pow(by, -arg));
             return from + (to-from) * frac;
         };
     }
@@ -56,6 +54,10 @@ var tick = function() {
     for (var i=0; i<queue.length; i++) {
         var cmd = queue[i];
 
+        var now = Date.now();
+        var time = now - cmd.start;
+        cmd.cur = (time > cmd.length) ? cmd.length : time;
+
         debuglog('0x%s : %d / %d', Number(cmd.ledmask).toString(16), cmd.cur, cmd.length);
 
         for (var led=0; led < display.NUM_LEDS; led++) {
@@ -64,7 +66,7 @@ var tick = function() {
             }
         }
 
-        if (++cmd.cur >= cmd.length) {
+        if (cmd.cur === cmd.length) {
             queue.splice(i, 1);
             i--;
 
@@ -84,7 +86,7 @@ var tick = function() {
 
     if (ticks % 20 === 19) {
         var ms = ((sum[1] / 1000000) + sum[0] * 1000) / 20;
-        console.log('avg tick took: ' + ms.toFixed(2) + ' ms');
+        //debuglog('avg tick took: ' + ms.toFixed(2) + ' ms');
         sum[0] = 0; sum[1] = 0;
     }
 };
@@ -94,6 +96,10 @@ function overlay(target, bottom, top, alpha) {
     target[1] = bottom[1] + (top[1]-bottom[1]) * alpha;
     target[2] = bottom[2] + (top[2]-bottom[2]) * alpha;
 }
+
+exports.clearQueue = function() {
+    queue.length = 0;
+};
 
 exports.addAmination = function(leds, from, to, time, done, gamma) {
     var fromArray = new Array(display.NUM_LEDS);
@@ -131,7 +137,8 @@ exports.addAmination = function(leds, from, to, time, done, gamma) {
             from: fromArray,
             to: toArray
         },
-        length: time / interval,
+        start: Date.now(),
+        length: time,
         interpolation: interpolation,
         done: done,
         cur: 0
