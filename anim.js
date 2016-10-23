@@ -158,3 +158,6 @@ exports.init = function(options) {
 
     setInterval(tick, interval);
 };
+
+exports.RING = 0x7e;
+exports.CENTER = 0x01;

@@ -6,9 +6,11 @@ var http = require('http');
 var socket = require('socket.io');
 var shortid = require('shortid');
 var _ = require('underscore');
+var Chromath = require('chromath');
 
 var sensorModule = require('./sensor.js');
 var display = require('./display.js');
+var anim = require('./anim.js');
 
 var vars = {
     SESSION_NAME: 'kk_sess',
@@ -17,10 +19,12 @@ var vars = {
     MISSING_TIMEOUT: 5000,
     MISSING_MAIL_TIMEOUT: 3000,
     RFID_WATCHDOG_TIMEOUT: 3500,
-    QUEUE_TIMEOUT: 10000
+    QUEUE_TIMEOUT: 10000,
+    ANIM_TIME: 200
 };
 
 display.init();
+anim.init({interval: 10});
 var sensor = sensorModule.init(vars);
 
 sensor.on('error', function() {
@@ -153,9 +157,88 @@ function updateQueueTimer() {
                     onQueueTimerExpired(clientId);
                 }, vars.QUEUE_TIMEOUT);
                 entry.expires = Date.now() + vars.QUEUE_TIMEOUT;
+                queueTimerAnimation();
             }
         } else {
             entry.expires = undefined;
+        }
+    }
+
+    updateDisplayState();
+}
+
+function p2l(phase) {
+    return 2 << (((phase + 5) % 6));
+}
+
+function queueTimerAnimation() {
+    var phase = 0;
+    var phaseTime = vars.QUEUE_TIMEOUT / 6;
+    var color = Chromath.yellow;
+
+    var doTicks = true;
+    var ticks = 0;
+    var tick = function() {
+        if (internalState.timerQueue) {
+            anim.addAmination(anim.CENTER, Chromath.rgba(0,0,0,0), ++ticks%2 ? Chromath.orange.darken(0.2) : Chromath.black, vars.ANIM_TIME, null, 1);
+            if (doTicks || ticks%2) {
+                setTimeout(tick, 500);
+            }
+        }
+    };
+
+    var nextPhase = function() {
+        if (internalState.timerQueue && (phase < 7)) {
+            anim.addAmination(p2l(phase), color, Chromath.black, phaseTime, null, 1);
+            phase++;
+            if (phase < 6) {
+                setTimeout(nextPhase, phaseTime);
+            }
+        }
+    };
+
+    anim.addAmination(anim.RING, Chromath.rgba(0,0,0,0), color, vars.ANIM_TIME, null, 1);
+    tick();
+    nextPhase();
+
+    setTimeout(function() {
+        doTicks = false;
+    }, vars.QUEUE_TIMEOUT - 1000);
+
+    // test abort
+    /*setTimeout(function() {
+        phase = 9;
+        doTicks = false;
+        anim.clearQueue();
+        anim.addAmination(RING, transp, Chromath.red, 200, null, 1);
+        anim.addAmination(CENTER, transp, Chromath.black, 200, null, 1);
+    }, 6000);
+*/
+}
+//anim.addAmination(RING, transp, Chromath.green, 200, null, 1);
+//setTimeout(function() {
+//    timer();
+//}, 1000);
+
+function updateDisplayState() {
+
+    if (state.keyMissing) {
+        anim.clearQueue();
+        anim.addAmination(anim.CENTER, Chromath.rgba(0,0,0,0), Chromath.black, vars.ANIM_TIME, null, 1);
+        anim.addAmination(anim.RING,   Chromath.rgba(0,0,0,0), Chromath.red, vars.ANIM_TIME, null, 1);
+    } else {
+        if (state.keyPresent) {
+            if (state.queue.length === 0) {
+                anim.clearQueue();
+                anim.addAmination(anim.CENTER, Chromath.rgba(0,0,0,0), Chromath.black, vars.ANIM_TIME, null, 1);
+                anim.addAmination(anim.RING,   Chromath.rgba(0,0,0,0), Chromath.green, vars.ANIM_TIME, null, 1);
+            } else {
+                //queueTimerAnimation();
+            }
+        } else {
+            anim.clearQueue();
+            anim.addAmination(anim.CENTER, Chromath.rgba(0,0,0,0), Chromath.black, vars.ANIM_TIME, null, 1);
+            anim.addAmination(anim.RING,   Chromath.rgba(0,0,0,0), Chromath.orange, vars.ANIM_TIME, null, 1);
         }
     }
 }
@@ -184,7 +267,6 @@ function onKeyTaken() {
         console.warn('illegal state - ignoring taken event');
     } else {
         console.log('key was TAKEN');
-        display.color(0x0000ff);
 
         state.keyPresent = false;
         internalState.timerMissing = setTimeout(function() {
@@ -195,19 +277,20 @@ function onKeyTaken() {
             removeFromQueue(state.queue[0].clientId);
         }
 
+        updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_TAKEN, state: state});
     }
 }
 
 function onKeyWentMissing() {
     console.log('key went MISSING');
-    display.color(0xff0000);
 
     state.keyMissing = true;
     internalState.timerMissing = setTimeout(function() {
         onKeyMissingMail();
     }, vars.MISSING_MAIL_TIMEOUT);
 
+    updateDisplayState();
     io.emit('message', {type: messages.EV_KEY_WENT_MISSING, state: state});
 }
 
@@ -222,7 +305,6 @@ function onKeyReturned() {
         console.warn('illegal state - ignoring returned event');
     } else {
         console.log('key was RETURNED');
-        display.color(0x00ff00);
 
         state.keyPresent = true;
         state.keyMissing = false;
@@ -232,6 +314,7 @@ function onKeyReturned() {
 
         updateQueueTimer();
 
+        updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_RETURNED, state: state});
     }
 }
