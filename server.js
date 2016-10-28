@@ -1,5 +1,6 @@
 "use strict";
 
+var nconf = require('nconf');
 var express = require('express');
 var session = require('cookie-session');
 var http = require('http');
@@ -7,6 +8,10 @@ var socket = require('socket.io');
 var shortid = require('shortid');
 var _ = require('underscore');
 var Chromath = require('chromath');
+var path = require('path');
+var moment = require('moment');
+var nodemailer = require('nodemailer');
+var EmailTemplate = require('email-templates').EmailTemplate;
 
 var sensorModule = require('./sensor.js');
 var display = require('./display.js');
@@ -22,6 +27,18 @@ var vars = {
     QUEUE_TIMEOUT: 10000,
     ANIM_TIME: 200
 };
+
+moment.locale('de');
+nconf.argv().env().file({ file: 'config.json' });
+
+var transporter = nodemailer.createTransport(nconf.get('mail').transport);
+var templateDir = path.join(__dirname, 'templates', 'missing');
+var sendMissingMail = transporter.templateSender(new EmailTemplate(templateDir),
+    {
+        "from": nconf.get('mail').from,
+        "to": nconf.get('mail').to
+    }
+);
 
 display.init();
 anim.init({interval: 10});
@@ -69,6 +86,7 @@ var messages = {
 var state = {
     keyPresent: false,
     keyMissing: false,
+    keyTakenOn: undefined,
     queue: []
 };
 
@@ -269,6 +287,7 @@ function onKeyTaken() {
         console.log('key was TAKEN');
 
         state.keyPresent = false;
+        state.keyTakenOn = new Date();
         internalState.timerMissing = setTimeout(function() {
             onKeyWentMissing();
         }, vars.MISSING_TIMEOUT);
@@ -295,9 +314,13 @@ function onKeyWentMissing() {
 }
 
 function onKeyMissingMail() {
+    console.log('sending missing email');
+
     internalState.timerMissing = undefined;
 
     // send mail to EVERYONE!
+    var diff = moment.duration(moment(state.keyTakenOn).diff(moment())).humanize();
+    //sendMissingMail({}, {"missing_since": diff});
 }
 
 function onKeyReturned() {
@@ -308,6 +331,7 @@ function onKeyReturned() {
 
         state.keyPresent = true;
         state.keyMissing = false;
+        state.keyTakenOn = undefined;
         if (internalState.timerMissing) {
             clearTimeout(internalState.timerMissing);
         }

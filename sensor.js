@@ -38,7 +38,7 @@ exports.init = function(options) {
 
                 serialPort.on('data', function (data) {
                     if (data && data.length && data[0]) {
-                        console.log('serial data received: ' + data);
+                        //console.log('serial data received: ' + data);
 
                         if (timerRFIDWatchdog) {
                             clearTimeout(timerRFIDWatchdog);
