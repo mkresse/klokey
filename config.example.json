@@ -13,5 +13,8 @@
     },
     "from": "Klokey <example@gmail.com>",
     "to": "Everyone <all@gmail.com>"
-  }
+  },
+  "port": 443,
+  "privateKey": "/path/to/privatekey.pem",
+  "certificate": "/path/to/certificate.pem"
 }

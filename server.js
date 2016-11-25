@@ -4,6 +4,8 @@ var nconf = require('nconf');
 var express = require('express');
 var session = require('cookie-session');
 var http = require('http');
+var https = require('https');
+var fs = require('fs');
 var socket = require('socket.io');
 var shortid = require('shortid');
 var _ = require('underscore');
@@ -67,7 +69,11 @@ sensor.on('open', function() {
 
 
 var app = express();
-var server = http.createServer(app);
+var options = {
+    key: fs.readFileSync(nconf.get('privateKey')),
+    cert: fs.readFileSync(nconf.get('certificate'))
+};
+var server = https.createServer(options, app);
 var io = socket(server);
 
 var messages = {
@@ -192,7 +198,7 @@ function p2l(phase) {
 function queueTimerAnimation() {
     var phase = 0;
     var phaseTime = vars.QUEUE_TIMEOUT / 6;
-    var color = Chromath.yellow;
+    var color = Chromath.yellow.darken(0.4);
 
     var doTicks = true;
     var ticks = 0;
@@ -425,7 +431,7 @@ io.on('connection', function (socket) {
     });
 });
 
-server.listen(3000, function () {
+server.listen(nconf.get('port'), function () {
     var addr = server.address();
     console.log("listening on %s:%d", addr.address, addr.port);
 });

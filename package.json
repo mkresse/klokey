@@ -1,7 +1,7 @@
 {
   "name": "klokey-server",
   "version": "0.0.1",
-  "description": "my first socket.io app",
+  "description": "my awesome klokey app",
   "dependencies": {
     "bower": "^1.8.0",
     "bower-installer": "^1.2.0",
@@ -10,6 +10,7 @@
     "email-templates": "^2.5.4",
     "express": "^4.14.0",
     "handlebars": "^3.0.0",
+    "https": "^1.0.0",
     "moment": "^2.16.0",
     "nconf": "^0.8.4",
     "nodemailer": "^2.6.4",
