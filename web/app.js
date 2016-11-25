@@ -27,7 +27,7 @@ app.factory('KloKeyService', function() {
         Notification.requestPermission(function (permission) {
             if (permission === "granted") {
                 notifications.push(new Notification("Toilettenschlüssel ist weg",
-                    {tag: 'keyMissing', body: 'Der Toilettenschlüssel ist weg. Bitte checke mal deine Hosentaschen.', icon:'http://localhost:3000/klo.jpg'}));
+                    {tag: 'keyMissing', body: 'Der Toilettenschlüssel ist weg. Bitte checke mal deine Hosentaschen.', icon:'/klo.jpg'}));
             }
         });
     };
@@ -36,7 +36,7 @@ app.factory('KloKeyService', function() {
         Notification.requestPermission(function (permission) {
             if (permission === "granted") {
                 var returnedNotification = new Notification("Schüssel zurück",
-                    {tag: 'keyMissing', icon:'http://localhost:3000/klo.jpg'});
+                    {tag: 'keyMissing', icon:'/klo.jpg'});
                 setTimeout(function() {
                     returnedNotification.close();
                 }, 3000);
