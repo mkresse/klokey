@@ -2,6 +2,7 @@
 
 var nconf = require('nconf');
 var express = require('express');
+var bodyParser = require('body-parser');
 var session = require('cookie-session');
 var http = require('http');
 var https = require('https');
@@ -18,6 +19,7 @@ var EmailTemplate = require('email-templates').EmailTemplate;
 var sensorModule = require('./sensor.js');
 var display = require('./display.js');
 var anim = require('./anim.js');
+var hipchat = require('./hipchat.js');
 
 var vars = {
     SESSION_NAME: 'kk_sess',
@@ -32,6 +34,11 @@ var vars = {
 
 moment.locale('de');
 nconf.argv().env().file({ file: 'config.json' });
+
+var serverOptions = {
+    key: fs.readFileSync(nconf.get('privateKey')),
+    cert: fs.readFileSync(nconf.get('certificate'))
+};
 
 var transporter = nodemailer.createTransport(nconf.get('mail').transport);
 var templateDir = path.join(__dirname, 'templates', 'missing');
@@ -69,11 +76,7 @@ sensor.on('open', function() {
 
 
 var app = express();
-var options = {
-    key: fs.readFileSync(nconf.get('privateKey')),
-    cert: fs.readFileSync(nconf.get('certificate'))
-};
-var server = https.createServer(options, app);
+var server = https.createServer(serverOptions, app);
 var io = socket(server);
 
 var messages = {
@@ -105,6 +108,16 @@ var internalState = {
 var sessionMiddleware = session({
     secret: vars.SESSION_KEY,
     name: vars.SESSION_NAME
+});
+
+// enable parsing of application/json
+app.use(bodyParser.json());
+
+// enable CORS
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
 });
 
 // execute session middleware for http traffic
@@ -145,6 +158,8 @@ app.get('/switch', function (req, res) {
 
     res.json(state);
 });
+
+var hipchatIntegration = hipchat.init(app, nconf.get('hipchat'), state);
 
 function addToQueue(clientId) {
     if (!_.findWhere(state.queue, {clientId: clientId})) {
@@ -304,6 +319,7 @@ function onKeyTaken() {
 
         updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_TAKEN, state: state});
+        hipchatIntegration.notifyKeyTaken();
     }
 }
 
@@ -317,6 +333,7 @@ function onKeyWentMissing() {
 
     updateDisplayState();
     io.emit('message', {type: messages.EV_KEY_WENT_MISSING, state: state});
+    hipchatIntegration.notifyKeyMissing();
 }
 
 function onKeyMissingMail() {
@@ -346,6 +363,7 @@ function onKeyReturned() {
 
         updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_RETURNED, state: state});
+        hipchatIntegration.notifyKeyReturned();
     }
 }
 

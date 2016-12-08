@@ -14,6 +14,9 @@
     "from": "Klokey <example@gmail.com>",
     "to": "Everyone <all@gmail.com>"
   },
+  "hipchat": {
+    "server": "https://hipchat.example.com"
+  },
   "port": 443,
   "privateKey": "/path/to/privatekey.pem",
   "certificate": "/path/to/certificate.pem"
