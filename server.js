@@ -166,6 +166,7 @@ function addToQueue(clientId) {
         state.queue.push({clientId: clientId});
         updateQueueTimer();
         io.emit('message', {type: messages.EV_RESERVATION_QUEUED, state: state});
+        hipchatIntegration.notifyReservationQueued();
         return true;
     }
 
@@ -178,6 +179,7 @@ function removeFromQueue(clientId) {
     });
     updateQueueTimer();
     io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state});
+    hipchatIntegration.notifyReservationRemoved();
 }
 
 function updateQueueTimer() {

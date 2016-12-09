@@ -10,6 +10,9 @@ var _ = require('underscore');
 
 var EventEmitter =  require('events').EventEmitter;
 
+var doSendNotification = false;
+var wasMissing = false;
+
 exports.init = function(app, options, state) {
     var eventEmitter = new EventEmitter();
     var storeData = readStoreData();
@@ -80,18 +83,14 @@ exports.init = function(app, options, state) {
     });
 
     app.get('/glance', function (req, res) {
-        res.json({
-            "label": {
-                "type": "html",
-                "value": "Kloschlüssel"
-            },
-            "status": statusFromState(state),
-            "metadata": {}
-        });
+        res.json(statusContentFromState(state));
 
         var jwt = jwtUtil.decode(req.query.signed_request, null, true);
         console.log("/glance called: jwt=", jwt);
-        console.log("response status sent: ", statusFromState(state));
+        console.log("response status sent: ", statusContentFromState(state));
+
+        console.log("client id: ", req.session.clientId);
+
     });
 
     function updateToken(storeData, room) {
@@ -118,7 +117,7 @@ exports.init = function(app, options, state) {
         }
 
         // TODO: use "expires_in"
-        if (!room.auth || !room.auth.isStillValid) {
+        if (!room.auth) { //} || !room.auth.isStillValid) {
             var promise = updateToken(storeData, room);
             tokenPromises[room.key] = promise;
             promise.then(function() {
@@ -133,21 +132,23 @@ exports.init = function(app, options, state) {
 
 
     function sendNotification(notifyRequest) {
-        _.each(storeData, function(room) {
-            checkToken(room).then(function() {
-                var httpOptions = {
-                    url: options.server + "/v2/room/" + room.installed.roomId + "/notification",
-                    method: 'POST',
-                    json: notifyRequest,
-                    auth: {
-                        bearer: room.auth.access_token
-                    }
-                };
+        if (doSendNotification) {
+            _.each(storeData, function(room) {
+                checkToken(room).then(function() {
+                    var httpOptions = {
+                        url: options.server + "/v2/room/" + room.installed.roomId + "/notification",
+                        method: 'POST',
+                        json: notifyRequest,
+                        auth: {
+                            bearer: room.auth.access_token
+                        }
+                    };
 
-                console.log("notifying hipchat: ", notifyRequest);
-                performRequest(httpOptions);
+                    console.log("notifying hipchat: ", notifyRequest);
+                    performRequest(httpOptions);
+                });
             });
-        });
+        }
     }
 
     function sendGlanceUpdate() {
@@ -157,13 +158,7 @@ exports.init = function(app, options, state) {
                     "glance": [
                         {
                             "key": "myaddon-glance",
-                            "content": {
-                                "label": {
-                                    "type": "html",
-                                    "value": "Kloschlüssel"
-                                },
-                                "status": statusFromState(state)
-                            }
+                            "content": statusContentFromState(state)
                         }
                     ]
                 };
@@ -191,6 +186,8 @@ exports.init = function(app, options, state) {
         },
 
         "notifyKeyMissing": function() {
+            wasMissing = true;
+
             sendGlanceUpdate();
             sendNotification({
                 "color": "red",
@@ -223,12 +220,23 @@ exports.init = function(app, options, state) {
 
         "notifyKeyReturned": function() {
             sendGlanceUpdate();
-            sendNotification({
-                "color": "green",
-                "message": "Schlüssel zurück",
-                "notify": true,
-                "message_format":"text"
-            });
+            if (wasMissing) {
+                wasMissing = false;
+                sendNotification({
+                    "color": "green",
+                    "message": "Schlüssel zurück",
+                    "notify": true,
+                    "message_format":"text"
+                });
+            }
+        },
+
+        "notifyReservationQueued": function() {
+            sendGlanceUpdate();
+        },
+
+        "notifyReservationRemoved": function() {
+            sendGlanceUpdate();
         }
     };
 
@@ -300,21 +308,34 @@ function performRequest(httpOptions) {
 }
 
 
-function statusFromState(state) {
+function statusContentFromState(state) {
     var statusValue;
 
     if (state.keyPresent) {
-        statusValue = {"label": "FREI", "type": "success" };
+        if (state.queue.length >= 1) {
+            var queue = " (" + state.queue.length + ")";
+            statusValue = {"label": "RESERVIERT" + queue, "type": "current" };
+        } else {
+            statusValue = {"label": "FREI", "type": "success" };
+        }
     } else {
         if (state.keyMissing) {
             statusValue = {"label": "VERMISST", "type": "error"};
+        } else if (!state.keyTakenOn) {
+            statusValue = {"label": "UNKLAR", "type": "moved"};
         } else {
             statusValue = {"label": "BESETZT", "type": "current"};
         }
     }
 
     return {
-        "type": "lozenge",
-        "value": statusValue
+        "label": {
+            "type": "html",
+            "value": "Kloschlüssel"
+        },
+        "status": {
+            "type": "lozenge",
+            "value": statusValue
+        }
     };
 }
