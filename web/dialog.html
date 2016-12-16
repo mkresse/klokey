@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+    <title>KloKey Reservierung</title>
+    <link rel="stylesheet" href="dialog.css">
+</head>
+<body ng-app="klokey" ng-controller="DialogController" ng-cloak>
+
+    <div class="container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
+        <div class="state-wrapper">
+            <div class="state free" ng-if="state.keyPresent && state.queue.length == 0">Frei</div>
+            <div class="state reserved" ng-if="state.keyPresent && state.queue.length > 0" title="{{remainingTime}}s">
+                Reserviert
+                <div class="timer" ng-if="expiresAt">
+                    <div class="bar" ng-style="{width: remainingPercent + '%'}"></div>
+                </div>
+            </div>
+            <div class="state taken" ng-if="!state.keyPresent && !state.keyMissing">Besetzt</div>
+            <div class="state missing" ng-if="!state.keyPresent && state.keyMissing">Vermisst</div>
+        </div>
+
+        <div class="person" ng-repeat="person in state.queue track by person.clientId" ng-class="{'self': person.clientId == clientId}" title="{{person.clientId}}">
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button ng-click="enqueue()" ng-disabled="isInQueue">Reservieren</button>
+        <button ng-click="leaveQueue()" ng-disabled="!isInQueue">Freigeben</button>
+    </div>
+
+    <div>
+        {{state}}
+    </div>
+
+    <div>
+        <ul>
+            <li ng-repeat="item in messages">{{item.type}} {{item.state}}</li>
+        </ul>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript" src="lib/jquery/jquery.js"></script>
+    <script type="text/javascript" src="lib/angular/angular.js"></script>
+    <script type="text/javascript" src="lib/angular-animate/angular-animate.js"></script>
+    <script type="text/javascript" src="lib/angular-aria/angular-aria.js"></script>
+    <script type="text/javascript" src="lib/angular-material/angular-material.js"></script>
+
+    <script type="text/javascript" src="app.js"></script>
+</body>
+</html>

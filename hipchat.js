@@ -51,12 +51,34 @@ exports.init = function(app, options, state) {
                         },
                         "queryUrl": "https://klokey.yetanotherserver.net/glance",
                         "key": "myaddon-glance",
-                        "target": "myaddon-sidebar",
+                        "target": "myaddon-dialog",
                         "icon": {
                             "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Golden_key_icon.svg/600px-Golden_key_icon.svg.png",
                             "url@2x": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Golden_key_icon.svg/600px-Golden_key_icon.svg.png"
                         },
                         "conditions": []
+                    }
+                ],
+
+                "dialog": [
+                    {
+                        "key": "myaddon-dialog",
+                        "title": {
+                            "value": "KloKey Warteschlange"
+                        },
+                        "url": "https://klokey.yetanotherserver.net/dialog.html",
+                        options: {
+                            "size": "small"
+
+/*
+                            "primaryAction": {
+                                "name": {
+                                    "value": "Reservieren"
+                                },
+                                "key": "dialog.yes"
+                            }
+                            */
+                        }
                     }
                 ]
             }
@@ -312,7 +334,9 @@ function statusContentFromState(state) {
     var statusValue;
 
     if (state.keyPresent) {
-        if (state.queue.length >= 1) {
+        if (state.queue.length === 1) {
+            statusValue = {"label": "RESERVIERT", "type": "current"};
+        } else if (state.queue.length > 1) {
             var queue = " (" + state.queue.length + ")";
             statusValue = {"label": "RESERVIERT" + queue, "type": "current" };
         } else {

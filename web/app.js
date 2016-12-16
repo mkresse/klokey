@@ -17,11 +17,15 @@ var messages = {
 };
 
 
-var app = angular.module('klokey', ['ngMaterial']);
+var app = angular.module('klokey', ['ngMaterial', 'ngAnimate']);
 
 app.factory('KloKeyService', function() {
     var kloKeyService = this;
     var notifications = [];
+
+    var socket = io();
+
+    kloKeyService.socket = socket;
 
     kloKeyService.notifyKeyMissing = function() {
         Notification.requestPermission(function (permission) {
@@ -49,23 +53,43 @@ app.factory('KloKeyService', function() {
         notifications = [];
     };
 
+    kloKeyService.isInQueue = function(queue, clientId) {
+        var isInQueue = false;
+        if (queue) {
+            angular.forEach(queue, function(it) {
+                if (it.clientId === clientId) {
+                    isInQueue = true;
+                }
+            });
+        }
+        return isInQueue;
+    };
+
+    kloKeyService.enqueue = function() {
+        socket.send({type: messages.REQ_ENQUEUE}, function(response) {
+            console.log('RESPONSE: ', response);
+        });
+    };
+
+    kloKeyService.leaveQueue = function() {
+        socket.send({type: messages.REQ_LEAVE_QUEUE}, function(response) {
+            console.log('RESPONSE: ', response);
+        });
+    };
+
     return kloKeyService;
 });
 
 app.controller("MainController", function($scope, KloKeyService) {
-    var socket = io();
+    var socket = KloKeyService.socket;
 
     $scope.clientId = null;
 
     $scope.enqueue = function() {
         if ($scope.isInQueue) {
-            socket.send({type: messages.REQ_LEAVE_QUEUE}, function(response) {
-                console.log('RESPONSE: ', response);
-            });
+            KloKeyService.leaveQueue();
         } else {
-            socket.send({type: messages.REQ_ENQUEUE}, function(response) {
-                console.log('RESPONSE: ', response);
-            });
+            KloKeyService.enqueue();
         }
     };
 
@@ -88,15 +112,12 @@ app.controller("MainController", function($scope, KloKeyService) {
             KloKeyService.notifyKeyReturned();
         }
 
-        $scope.isInQueue = false;
+        $scope.isInQueue = KloKeyService.isInQueue(data.state.queue, $scope.clientId);
+
         if (data.state && data.state.queue) {
             angular.forEach(data.state.queue, function(it) {
                 if (it.expires) {
                     it.remaining = (it.expires - Date.now()) / 1000;
-                }
-                console.log(it.clientId, ' =?', $scope.clientId);
-                if (it.clientId === $scope.clientId) {
-                    $scope.isInQueue = true;
                 }
             });
         }
@@ -120,4 +141,57 @@ app.controller("MainController", function($scope, KloKeyService) {
     setTimeout(updateTimer, 100);
 
 
+});
+
+app.controller("DialogController", function($scope, KloKeyService) {
+    var socket = KloKeyService.socket;
+
+    $scope.clientId = null;
+    $scope.state = {};
+    $scope.messages = [];
+
+    $scope.enqueue = KloKeyService.enqueue;
+    $scope.leaveQueue = KloKeyService.leaveQueue;
+
+    socket.on('message', function (data) {
+        console.log('received message: ', data);
+
+        $scope.clientId = data.clientId || $scope.clientId;
+        $scope.state = data.state;
+        $scope.messages.push(data);
+        $scope.isInQueue = KloKeyService.isInQueue(data.state.queue, $scope.clientId);
+
+        if (data.type === messages.EV_RESERVATION_REMOVED) {
+            $scope.reservationSuccess = data.success;
+        }
+
+        if (data.state.queue.length > 0 && data.state.queue[0].expiresIn) {
+            var first = data.state.queue[0];
+            $scope.expiresAt = Date.now() + first.expiresIn;
+            $scope.expiryTime = first.expiryTime;
+            updateQueueTimer();
+        } else {
+            $scope.expiresAt = null;
+        }
+
+        function updateQueueTimer() {
+            var now = Date.now();
+            if ($scope.expiresAt && $scope.expiresAt > now) {
+                var expiresIn = $scope.expiresAt - now;
+                $scope.remainingTime = (expiresIn / 1000).toFixed(1);
+                $scope.remainingPercent = (expiresIn / $scope.expiryTime) * 100;
+                setTimeout(updateQueueTimer, 100);
+            } else {
+                $scope.expiresAt = null;
+            }
+            $scope.$apply();
+        }
+
+        $scope.$apply();
+    });
+
+    socket.on('disconnect', function() {
+        console.log('connection disconnected');
+        $scope.state = null;
+    });
 });

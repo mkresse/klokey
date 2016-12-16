@@ -139,7 +139,9 @@ io.use(function(socket, next) {
 });
 
 app.use(express.static('web'));
-app.use('/lib', express.static('lib'));
+app.use('/lib', express.static('lib', {
+    maxage: 3600*1000
+}));
 
 app.get('/state', function (req, res) {
     res.json(state);
@@ -161,10 +163,21 @@ app.get('/switch', function (req, res) {
 
 var hipchatIntegration = hipchat.init(app, nconf.get('hipchat'), state);
 
+function calcQueueRemainingTime() {
+    if (state.queue.length > 0) {
+        if (state.queue[0].expires) {
+            state.queue[0].expiresIn = state.queue[0].expires - Date.now();
+        } else {
+            state.queue[0].expiresIn = undefined;
+        }
+    }
+}
+
 function addToQueue(clientId) {
     if (!_.findWhere(state.queue, {clientId: clientId})) {
         state.queue.push({clientId: clientId});
         updateQueueTimer();
+        calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_RESERVATION_QUEUED, state: state});
         hipchatIntegration.notifyReservationQueued();
         return true;
@@ -173,12 +186,13 @@ function addToQueue(clientId) {
     return false;
 }
 
-function removeFromQueue(clientId) {
+function removeFromQueue(clientId, success) {
     state.queue = _.reject(state.queue, function(entry) {
         return entry.clientId === clientId;
     });
     updateQueueTimer();
-    io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state});
+    calcQueueRemainingTime();
+    io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state, success: success || false});
     hipchatIntegration.notifyReservationRemoved();
 }
 
@@ -197,10 +211,12 @@ function updateQueueTimer() {
                 internalState.timerQueue = setTimeout(function() {
                     onQueueTimerExpired(clientId);
                 }, vars.QUEUE_TIMEOUT);
+                entry.expiryTime = vars.QUEUE_TIMEOUT;
                 entry.expires = Date.now() + vars.QUEUE_TIMEOUT;
                 queueTimerAnimation();
             }
         } else {
+            entry.expiryTime = undefined;
             entry.expires = undefined;
         }
     }
@@ -316,10 +332,11 @@ function onKeyTaken() {
         }, vars.MISSING_TIMEOUT);
 
         if (state.queue.length > 0) {
-            removeFromQueue(state.queue[0].clientId);
+            removeFromQueue(state.queue[0].clientId, true);
         }
 
         updateDisplayState();
+        calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_KEY_TAKEN, state: state});
         hipchatIntegration.notifyKeyTaken();
     }
@@ -334,6 +351,7 @@ function onKeyWentMissing() {
     }, vars.MISSING_MAIL_TIMEOUT);
 
     updateDisplayState();
+    calcQueueRemainingTime();
     io.emit('message', {type: messages.EV_KEY_WENT_MISSING, state: state});
     hipchatIntegration.notifyKeyMissing();
 }
@@ -362,6 +380,7 @@ function onKeyReturned() {
         }
 
         updateQueueTimer();
+        calcQueueRemainingTime();
 
         updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_RETURNED, state: state});
@@ -409,13 +428,14 @@ function removeFromConnectionList(clientId, socketId) {
 }
 
 io.on('connection', function (socket) {
-    var clientId = socket.request.session.clientId;
+    var clientId = (socket.request.session.clientId || shortid.generate());
     getConnectionList(clientId).push(socket.id);
 
     console.log('a client connected from %s (%s)', socket.client.conn.remoteAddress, socket.id);
 
     console.log('connect headers', socket.request.headers);
 
+    calcQueueRemainingTime();
     socket.send({type: messages.HELLO, state: state, clientId: clientId});
 
     socket.on('message', function (msg, replyFn) {
