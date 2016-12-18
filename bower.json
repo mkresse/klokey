@@ -10,12 +10,12 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "~1.4.0",
-    "angular-animate": "~1.4.0",
-    "angular-cookies": "~1.4.0",
+    "angular": "~1.4.14",
+    "angular-animate": "~1.4.14",
+    "angular-cookies": "~1.4.14",
     "angular-material": "~0.9.8",
-    "bootstrap": "~3.3.4",
-    "jquery": "~2.1.4"
+    "bootstrap": "~3.3.7",
+    "jquery": "~2.2.4"
   },
   "install": {
     "path": "lib",
@@ -25,5 +25,8 @@
       ]
     }
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "resolutions": {
+    "angular": "1.4.14"
+  }
 }
