@@ -15,6 +15,7 @@ var path = require('path');
 var moment = require('moment');
 var nodemailer = require('nodemailer');
 var EmailTemplate = require('email-templates').EmailTemplate;
+var url = require('url');
 
 var sensorModule = require('./sensor.js');
 var display = require('./display.js');
@@ -187,13 +188,17 @@ function addToQueue(clientId) {
 }
 
 function removeFromQueue(clientId, success) {
+    var oldLength = state.queue.length;
     state.queue = _.reject(state.queue, function(entry) {
         return entry.clientId === clientId;
     });
-    updateQueueTimer();
-    calcQueueRemainingTime();
-    io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state, success: success || false});
-    hipchatIntegration.notifyReservationRemoved();
+
+    if (state.queue.length !== oldLength) {
+        updateQueueTimer();
+        calcQueueRemainingTime();
+        io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state, success: success || false});
+        hipchatIntegration.notifyReservationRemoved();
+    }
 }
 
 function updateQueueTimer() {
@@ -434,6 +439,14 @@ io.on('connection', function (socket) {
     console.log('a client connected from %s (%s)', socket.client.conn.remoteAddress, socket.id);
 
     console.log('connect headers', socket.request.headers);
+
+    // pass jwt back to hipchat integration
+    if (socket.request.headers.referer) {
+        var jwt = url.parse(socket.request.headers.referer, true).query.signed_request;
+        if (jwt) {
+            hipchatIntegration.handleSocketJwt(clientId, jwt);
+        }
+    }
 
     calcQueueRemainingTime();
     socket.send({type: messages.HELLO, state: state, clientId: clientId});

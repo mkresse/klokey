@@ -17,6 +17,7 @@ exports.init = function(app, options, state) {
     var eventEmitter = new EventEmitter();
     var storeData = readStoreData();
     var tokenPromises = {};
+    var clientIdToUserId = {};
 
     app.get('/capabilities', function (req, res) {
         res.json({
@@ -114,6 +115,14 @@ exports.init = function(app, options, state) {
         console.log("client id: ", req.session.clientId);
 
     });
+
+    function associateClientIdWithUserId(clientId, jwtString) {
+        var jwt = jwtUtil.decode(jwtString, null, true);
+        if (jwt) {
+            console.log("associate " + clientId + " to " + jwt.sub);
+            clientIdToUserId[clientId] = jwt.sub;
+        }
+    }
 
     function updateToken(storeData, room) {
         var httpOptions = {
@@ -259,6 +268,10 @@ exports.init = function(app, options, state) {
 
         "notifyReservationRemoved": function() {
             sendGlanceUpdate();
+        },
+
+        "handleSocketJwt": function(clientId, jwt) {
+            associateClientIdWithUserId(clientId, jwt);
         }
     };
 
