@@ -1,19 +1,24 @@
 "use strict";
 
 var fs = require('fs');
+var winston = require('winston');
 var Promise = require('promise');
 var request = require('request');
 var jwtUtil = require('jwt-simple');
+var moment = require('moment');
 var _ = require('underscore');
 
 //require('request').debug = true
 
 var EventEmitter =  require('events').EventEmitter;
 
+var logger;
 var doSendNotification = false;
 var wasMissing = false;
 
-exports.init = function(app, options, state) {
+exports.init = function(app, options, state, serverLogger) {
+    logger = serverLogger || winston;
+
     var eventEmitter = new EventEmitter();
     var storeData = readStoreData();
     var tokenPromises = {};
@@ -90,7 +95,7 @@ exports.init = function(app, options, state) {
 
     app.post('/installed', function (req, res) {
         var installData = req.body;
-        console.log("install data: ", installData);
+        logger.debug("install hook called: ", installData);
 
         performRequest(installData.capabilitiesUrl).then(
             function(response) {
@@ -99,27 +104,25 @@ exports.init = function(app, options, state) {
                 res.status(200).end();
             },
             function(err) {
-                console.error(err);
+                logger.error(err);
                 res.status(500).end();
             }
         );
     });
 
     app.get('/glance', function (req, res) {
-        res.json(statusContentFromState(state));
+        var response = statusContentFromState(state);
+        res.json(response);
 
         var jwt = jwtUtil.decode(req.query.signed_request, null, true);
-        console.log("/glance called: jwt=", jwt);
-        console.log("response status sent: ", statusContentFromState(state));
-
-        console.log("client id: ", req.session.clientId);
-
+        logger.debug("/glance called: clientId=%s, jwt=", req.session.clientId, jwt);
+        logger.debug("response status sent: ", response);
     });
 
     function associateClientIdWithUserId(clientId, jwtString) {
         var jwt = jwtUtil.decode(jwtString, null, true);
         if (jwt) {
-            console.log("associate " + clientId + " to " + jwt.sub);
+            logger.debug("associate " + clientId + " to " + jwt.sub);
             clientIdToUserId[clientId] = jwt.sub;
         }
     }
@@ -136,29 +139,40 @@ exports.init = function(app, options, state) {
         };
 
         return performRequest(httpOptions).then(function(response) {
-            console.log("success getting token: ", response);
+            logger.info("success getting token: ", response);
             storeAuthData(storeData, room.key, JSON.parse(response));
             return true;
         });
     }
 
     function checkToken(room) {
+        // check if there is already a token request in progress
         if (tokenPromises[room.key]) {
+            logger.debug("token update in progress");
             return tokenPromises[room.key];
         }
 
-        // TODO: use "expires_in"
-        if (!room.auth) { //} || !room.auth.isStillValid) {
-            var promise = updateToken(storeData, room);
-            tokenPromises[room.key] = promise;
-            promise.then(function() {
-                tokenPromises[room.key] = null;
-            });
-
-            return promise;
+        // check if there is a valid token available
+        if (room.auth && room.authExpiresAt) {
+            var isExpired = moment().isAfter(moment(room.authExpiresAt, moment.ISO_8601));
+            if (!isExpired) {
+                return Promise.resolve(true);
+            }
+            logger.debug("token is expired");
         }
 
-        return Promise.resolve(true);
+        // a (new) token is required
+        logger.debug("require new token");
+        var promise = updateToken(storeData, room);
+        tokenPromises[room.key] = promise;
+        promise.then(function() {
+            tokenPromises[room.key] = null;
+        }, function() {
+            logger.error('unable to update token');
+            tokenPromises[room.key] = null;
+        });
+
+        return promise;
     }
 
 
@@ -175,8 +189,8 @@ exports.init = function(app, options, state) {
                         }
                     };
 
-                    console.log("notifying hipchat: ", notifyRequest);
-                    performRequest(httpOptions);
+                    logger.debug("notifying hipchat to %s: ", room.key, notifyRequest);
+                    performRequest(httpOptions, room);
                 });
             });
         }
@@ -203,8 +217,8 @@ exports.init = function(app, options, state) {
                     }
                 };
 
-                console.log("sending glance update: ", glanceData);
-                performRequest(httpOptions);
+                logger.debug("sending glance update to %s: ", room.key, glanceData);
+                performRequest(httpOptions, room);
             });
         });
     }
@@ -275,7 +289,7 @@ exports.init = function(app, options, state) {
         }
     };
 
-    console.log("HIPCHAT initialized");
+    logger.info("HIPCHAT initialized");
 
     eventEmitter.emit("initialized");
 
@@ -287,12 +301,14 @@ function getStoreKey(groupId, roomId) {
     return groupId + "#" + roomId;
 }
 
-function storeInstallData(storeData, installed, capabilitis) {
+function storeInstallData(storeData, installed, capabilities) {
     var key = getStoreKey(installed.groupId, installed.roomId);
     storeData[key] = {
         key: key,
         installed: installed,
-        capabilities: capabilitis
+        capabilities: capabilities,
+        auth: null,
+        authExpiresAt: null
     };
 
     writeStoreData(storeData);
@@ -301,9 +317,10 @@ function storeInstallData(storeData, installed, capabilitis) {
 function storeAuthData(storeData, key, auth) {
     if (storeData[key]) {
         storeData[key].auth = auth;
+        storeData[key].authExpiresAt = moment().add(auth.expires_in, "seconds").toISOString();
         writeStoreData(storeData);
     } else {
-        console.error("unable to find store data for ", key);
+        logger.error("unable to find store data for ", key);
     }
 }
 
@@ -317,26 +334,31 @@ function readStoreData() {
     if (fs.existsSync('data.json')) {
         var file = fs.readFileSync('data.json', {encoding:'utf8'});
         storeData = JSON.parse(file);
-        console.log('Read install data:', storeData);
+        logger.info('Read install data:', storeData);
     }
 
     return storeData;
 }
 
-function performRequest(httpOptions) {
+function performRequest(httpOptions, room) {
     return new Promise(function (resolve, reject) {
         request(httpOptions, function (error, response, body) {
             if (!error) {
                 if (response.statusCode >= 200 && response.statusCode <= 299) {
-                    console.log("success: ", body);
+                    logger.debug("request - success: ", httpOptions, body);
                     resolve(body);
                 } else {
-                    console.error("wrong status code: ", response.statusCode);
-                    reject("wrong status code: " + response.statusCode);
+                    logger.error("request - wrong status code: ", response.statusCode);
+                    reject("wrong status code: " + response.statusCode, httpOptions);
+                    if (room && response.statusCode === 401) {
+                        // force token update next time
+                        room.auth = null;
+                        room.authExpiresAt = null;
+                    }
                 }
             } else {
-                console.error("error while calling hipchat: ", error);
-                reject("error while calling hipchat: " + error);
+                logger.error("request - error while calling hipchat: ", error);
+                reject("error while calling hipchat: " + error, httpOptions);
             }
         });
     });

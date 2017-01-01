@@ -5,8 +5,10 @@
 "use strict";
 
 var ws281x = require('rpi-ws281x-native');
+var winston = require('winston');
 
 var NUM_LEDS = 7,
+    logger,
     outputBuffer = new Uint32Array(NUM_LEDS),
     pixelData = new Uint32Array(NUM_LEDS);
 
@@ -22,13 +24,15 @@ exports.render = function() {
     }
 };
 
-exports.init = function() {
+exports.init = function(serverLogger) {
+    logger = serverLogger || winston;
+
     if (ws281x) {
-        console.log("********* Initializing display *********");
+        logger.info("********* Initializing display *********");
 
         ws281x.init(NUM_LEDS);
     } else {
-        console.log("********* Display not available *********");
+        logger.warn("********* Display not available *********");
 
     }
 

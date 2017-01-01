@@ -1,6 +1,7 @@
 "use strict";
 
 var nconf = require('nconf');
+var winston = require('winston');
 var express = require('express');
 var bodyParser = require('body-parser');
 var session = require('cookie-session');
@@ -21,6 +22,15 @@ var sensorModule = require('./sensor.js');
 var display = require('./display.js');
 var anim = require('./anim.js');
 var hipchat = require('./hipchat.js');
+
+var logger = new (winston.Logger)({
+    transports: [
+        new (winston.transports.Console)({'timestamp':true, level: 'debug' }),
+        new (winston.transports.File)({'timestamp':true, filename: 'server.log', level: 'debug', json: false })
+    ]
+});
+
+logger.info('starting KloKey server');
 
 var vars = {
     SESSION_NAME: 'kk_sess',
@@ -50,28 +60,28 @@ var sendMissingMail = transporter.templateSender(new EmailTemplate(templateDir),
     }
 );
 
-display.init();
+display.init(logger);
 anim.init({interval: 10});
-var sensor = sensorModule.init(vars);
+var sensor = sensorModule.init(vars, logger);
 
 sensor.on('error', function() {
     process.exit(1);
 });
 
 sensor.on('open', function() {
-    console.log('Current gid: ' + process.getgid());
-    console.log('Current uid: ' + process.getuid());
+    logger.info('Current gid: ' + process.getgid());
+    logger.info('Current uid: ' + process.getuid());
 
     var gid = parseInt(process.env.SUDO_GID);
     if (gid) {
         process.setgid(gid);
-        console.log('Switched to gid: ' + process.getgid());
+        logger.info('Switched to gid: ' + process.getgid());
     }
 
     var uid = parseInt(process.env.SUDO_UID);
     if (uid) {
         process.setuid(uid);
-        console.log('Switched to uid: ' + process.getuid());
+        logger.info('Switched to uid: ' + process.getuid());
     }
 });
 
@@ -124,10 +134,10 @@ app.use(function(req, res, next) {
 // execute session middleware for http traffic
 app.use(sessionMiddleware,
     function (req, res, next) {
-        console.log('request: %s %d: %s', req.session.clientId, Date.now(), req.originalUrl);
+        logger.debug('request: %s %d: %s', req.session.clientId, Date.now(), req.originalUrl);
         if (!req.session.clientId || (""+req.session.clientId).length < 2) {
             req.session.clientId = shortid.generate();
-            console.log('Generated clientId: ', req.session.clientId);
+            logger.debug('Generated clientId: ', req.session.clientId);
         }
 
         next();
@@ -162,7 +172,7 @@ app.get('/switch', function (req, res) {
     res.json(state);
 });
 
-var hipchatIntegration = hipchat.init(app, nconf.get('hipchat'), state);
+var hipchatIntegration = hipchat.init(app, nconf.get('hipchat'), state, logger);
 
 function calcQueueRemainingTime() {
     if (state.queue.length > 0) {
@@ -306,7 +316,7 @@ function updateDisplayState() {
 }
 
 sensor.on('RFIDWatchdogExpired', function() {
-    console.log('RFID timer expired, assuming key taken');
+    logger.info('RFID timer expired, assuming key taken');
 
     onKeyTaken();
 });
@@ -318,7 +328,7 @@ sensor.on('RFIDDataReceived', function() {
 });
 
 function onQueueTimerExpired(clientId) {
-    console.log('timer expired for client: ', clientId);
+    logger.info('timer expired for client: ', clientId);
 
     internalState.timerQueue = undefined;
     removeFromQueue(clientId);
@@ -326,9 +336,9 @@ function onQueueTimerExpired(clientId) {
 
 function onKeyTaken() {
     if (!state.keyPresent) {
-        console.warn('illegal state - ignoring taken event');
+        logger.warn('illegal state - ignoring taken event');
     } else {
-        console.log('key was TAKEN');
+        logger.info('key was TAKEN');
 
         state.keyPresent = false;
         state.keyTakenOn = new Date();
@@ -348,7 +358,7 @@ function onKeyTaken() {
 }
 
 function onKeyWentMissing() {
-    console.log('key went MISSING');
+    logger.info('key went MISSING');
 
     state.keyMissing = true;
     internalState.timerMissing = setTimeout(function() {
@@ -362,7 +372,7 @@ function onKeyWentMissing() {
 }
 
 function onKeyMissingMail() {
-    console.log('sending missing email');
+    logger.info('sending missing email');
 
     internalState.timerMissing = undefined;
 
@@ -373,9 +383,9 @@ function onKeyMissingMail() {
 
 function onKeyReturned() {
     if (state.keyPresent) {
-        console.warn('illegal state - ignoring returned event');
+        logger.warn('illegal state - ignoring returned event');
     } else {
-        console.log('key was RETURNED');
+        logger.info('key was RETURNED');
 
         state.keyPresent = true;
         state.keyMissing = false;
@@ -394,7 +404,7 @@ function onKeyReturned() {
 }
 
 function onEnqueueRequest(clientId, replyFn) {
-    console.log('enqueue requested from %s', clientId);
+    logger.info('enqueue requested from %s', clientId);
     if (addToQueue(clientId)) {
         replyFn('DONE!' + clientId);
     } else {
@@ -403,7 +413,7 @@ function onEnqueueRequest(clientId, replyFn) {
 }
 
 function onLeaveQueueRequest(clientId, replyFn) {
-    console.log('leave queue requested from %s', clientId);
+    logger.info('leave queue requested from %s', clientId);
     removeFromQueue(clientId);
     replyFn('DONE! ' + clientId);
 }
@@ -436,9 +446,9 @@ io.on('connection', function (socket) {
     var clientId = (socket.request.session.clientId || shortid.generate());
     getConnectionList(clientId).push(socket.id);
 
-    console.log('a client connected from %s (%s)', socket.client.conn.remoteAddress, socket.id);
+    logger.info('a client connected from %s (%s)', socket.client.conn.remoteAddress, socket.id);
 
-    console.log('connect headers', socket.request.headers);
+    logger.debug('connect headers', socket.request.headers);
 
     // pass jwt back to hipchat integration
     if (socket.request.headers.referer) {
@@ -454,8 +464,8 @@ io.on('connection', function (socket) {
     socket.on('message', function (msg, replyFn) {
         clientId = socket.request.session.clientId;
 
-        console.log('received message (%s): ', socket.id, msg);
-        console.log('message headers', socket.request.headers);
+        logger.debug('received message (%s): ', socket.id, msg);
+        logger.debug('message headers', socket.request.headers);
 
         switch(msg.type) {
             case messages.REQ_ENQUEUE:
@@ -469,15 +479,15 @@ io.on('connection', function (socket) {
     });
 
     socket.on('close', function() {
-        console.log('a client closed (%s)', socket.id);
+        logger.info('a client closed (%s)', socket.id);
     });
 
     socket.on('disconnect', function() {
-        console.log('a client disconnected (%s)', socket.id);
+        logger.info('a client disconnected (%s)', socket.id);
         // delay cleaning up to support browser reload
         setTimeout(function() {
             if (removeFromConnectionList(clientId, socket.id)) {
-                console.log('last connection for client - cleaning up');
+                logger.info('last connection for client %s - cleaning up', clientId);
                 removeFromQueue(clientId);
             }
         }, vars.CLEANUP_DELAY);
@@ -486,5 +496,5 @@ io.on('connection', function (socket) {
 
 server.listen(nconf.get('port'), function () {
     var addr = server.address();
-    console.log("listening on %s:%d", addr.address, addr.port);
+    logger.info("listening on %s:%d", addr.address, addr.port);
 });

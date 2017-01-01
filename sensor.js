@@ -3,8 +3,9 @@
 var EventEmitter =  require('events').EventEmitter;
 var SerialPort = require('serialport').SerialPort;
 var GPIO = require('onoff').Gpio;
+var winston = require('winston');
 
-exports.init = function(options) {
+exports.init = function(options, logger) {
     var timerRFIDWatchdog;
     var eventEmitter = new EventEmitter();
     var serialPort = new SerialPort('/dev/ttyAMA0', {
@@ -18,11 +19,11 @@ exports.init = function(options) {
     process.nextTick(function() {
         serialPort.on("open", function (error) {
             if (error) {
-                console.log('failed to open serial port: ' + error);
+                logger.error('failed to open serial port: ' + error);
 
                 eventEmitter.emit("error");
             } else {
-                console.log('opened serial port');
+                logger.info('opened serial port');
 
                 var resetPin = new GPIO(17, 'out');
                 var reset = function() {
@@ -38,7 +39,7 @@ exports.init = function(options) {
 
                 serialPort.on('data', function (data) {
                     if (data && data.length && data[0]) {
-                        //console.log('serial data received: ' + data);
+                        //logger.trace('serial data received: ' + data);
 
                         if (timerRFIDWatchdog) {
                             clearTimeout(timerRFIDWatchdog);
