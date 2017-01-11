@@ -15,6 +15,7 @@
     "to": "Everyone <all@gmail.com>"
   },
   "hipchat": {
+    "base_url": "https://addon.example.com",
     "server": "https://hipchat.example.com"
   },
   "port": 443,

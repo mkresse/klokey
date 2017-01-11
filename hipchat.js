@@ -7,6 +7,7 @@ var request = require('request');
 var jwtUtil = require('jwt-simple');
 var moment = require('moment');
 var _ = require('underscore');
+var handlebars = require('handlebars');
 
 //require('request').debug = true
 
@@ -25,71 +26,9 @@ exports.init = function(app, options, state, serverLogger) {
     var clientIdToUserId = {};
 
     app.get('/capabilities', function (req, res) {
-        res.json({
-            "name": "KloKey Addon",
-            "description": "some test integration",
-            "vendor": {
-                "name": "EsPresto AG",
-                "url": "http://www.espresto.com"
-            },
-            "links": {
-                "self": "https://klokey.yetanotherserver.net/capabilities"
-            },
-            "key": "com.espresto.klokey",
-            "capabilities": {
-                "installable": {
-                    "allowGlobal": false,
-                    "allowRoom": true,
-                    "callbackUrl": "https://klokey.yetanotherserver.net/installed",
-                    "updateCallbackUrl": "https://klokey.yetanotherserver.net/updated"
-                },
-
-                "hipchatApiConsumer": {
-                    "scopes": [
-                        "send_notification"
-                    ]
-                },
-
-                "glance": [
-                    {
-                        "name": {
-                            "value": "Cooles KloKey addon glance"
-                        },
-                        "queryUrl": "https://klokey.yetanotherserver.net/glance",
-                        "key": "myaddon-glance",
-                        "target": "myaddon-dialog",
-                        "icon": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Golden_key_icon.svg/600px-Golden_key_icon.svg.png",
-                            "url@2x": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Golden_key_icon.svg/600px-Golden_key_icon.svg.png"
-                        },
-                        "conditions": []
-                    }
-                ],
-
-                "dialog": [
-                    {
-                        "key": "myaddon-dialog",
-                        "title": {
-                            "value": "KloKey Warteschlange"
-                        },
-                        "url": "https://klokey.yetanotherserver.net/dialog.html",
-                        options: {
-                            "size": "small"
-
-/*
-                            "primaryAction": {
-                                "name": {
-                                    "value": "Reservieren"
-                                },
-                                "key": "dialog.yes"
-                            }
-                            */
-                        }
-                    }
-                ]
-            }
-
-        });
+        var file = fs.readFileSync('capabilities.json', {encoding: 'utf8'});
+        var capabilities = handlebars.compile(file)({BASE_URL: options.base_url});
+        res.json(JSON.parse(capabilities));
     });
 
 

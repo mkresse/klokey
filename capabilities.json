@@ -1,0 +1,52 @@
+{
+  "name": "KloKey Addon",
+  "description": "A technical solution for the dreaded missing klo key problem.",
+  "vendor": {
+    "name": "EsPresto AG",
+    "url": "http://www.espresto.com"
+  },
+  "links": {
+    "self": "{{BASE_URL}}/capabilities"
+  },
+  "key": "com.espresto.klokey",
+  "capabilities": {
+    "installable": {
+      "allowGlobal": false,
+      "allowRoom": true,
+      "callbackUrl": "{{BASE_URL}}/installed",
+      "updateCallbackUrl": "{{BASE_URL}}/updated"
+    },
+    "hipchatApiConsumer": {
+      "scopes": [
+        "send_notification"
+      ]
+    },
+    "glance": [
+      {
+        "name": {
+          "value": "Cooles KloKey addon glance"
+        },
+        "queryUrl": "{{BASE_URL}}/glance",
+        "key": "myaddon-glance",
+        "target": "myaddon-dialog",
+        "icon": {
+          "url": "{{BASE_URL}}/golden_key_icon.png",
+          "url@2x": "{{BASE_URL}}/golden_key_icon.png"
+        },
+        "conditions": []
+      }
+    ],
+    "dialog": [
+      {
+        "key": "myaddon-dialog",
+        "title": {
+          "value": "KloKey Warteschlange"
+        },
+        "url": "{{BASE_URL}}/dialog.html",
+        "options": {
+          "size": "small"
+        }
+      }
+    ]
+  }
+}
