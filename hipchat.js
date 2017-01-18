@@ -14,7 +14,7 @@ var handlebars = require('handlebars');
 var EventEmitter =  require('events').EventEmitter;
 
 var logger;
-var doSendNotification = false;
+var doSendNotification = true;
 var wasMissing = false;
 
 exports.init = function(app, options, state, serverLogger) {
@@ -164,6 +164,10 @@ exports.init = function(app, options, state, serverLogger) {
 
     var hipChatHandle = {
         "on": eventEmitter.on,
+
+        "isHipchatUser": function(clientId) {
+            return clientIdToUserId[clientId] ? true : false;
+        },
 
         "notifyKeyTaken": function() {
             sendGlanceUpdate();

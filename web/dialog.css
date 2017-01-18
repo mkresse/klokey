@@ -15,6 +15,7 @@ body {
     display: flex;
     flex-direction: row-reverse;
     height: 60px;
+    margin: 15px 0;
 }
 
 .state-wrapper {
@@ -143,4 +144,14 @@ body {
 .leave-right .person.ng-leave.ng-leave-active {
     opacity: 0;
     width: 0;
+}
+
+.state-text {
+    margin-top: 15px;
+}
+
+.debug {
+    margin-top: 10px;
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    display: none;
 }

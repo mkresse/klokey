@@ -165,6 +165,12 @@ app.controller("DialogController", function($scope, KloKeyService) {
             $scope.reservationSuccess = data.success;
         }
 
+        if (data.state.keyMissingSince) {
+            $scope.keyMissingSince = moment(data.state.keyMissingSince).format("LT");
+        } else {
+            $scope.keyMissingSince = undefined;
+        }
+
         if (data.state.queue.length > 0 && data.state.queue[0].expiresIn) {
             var first = data.state.queue[0];
             $scope.expiresAt = Date.now() + first.expiresIn;
@@ -178,7 +184,7 @@ app.controller("DialogController", function($scope, KloKeyService) {
             var now = Date.now();
             if ($scope.expiresAt && $scope.expiresAt > now) {
                 var expiresIn = $scope.expiresAt - now;
-                $scope.remainingTime = (expiresIn / 1000).toFixed(1);
+                $scope.remainingTime = (expiresIn / 1000).toFixed(0);
                 $scope.remainingPercent = (expiresIn / $scope.expiryTime) * 100;
                 setTimeout(updateQueueTimer, 100);
             } else {

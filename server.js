@@ -106,11 +106,11 @@ var messages = {
 var state = {
     keyPresent: false,
     keyMissing: false,
-    keyTakenOn: undefined,
     queue: []
 };
 
 var internalState = {
+    keyTakenOn: undefined,
     timerMissing: undefined,
     timerQueue: undefined,
     clientConnectionsMap: {}
@@ -341,7 +341,7 @@ function onKeyTaken() {
         logger.info('key was TAKEN');
 
         state.keyPresent = false;
-        state.keyTakenOn = new Date();
+        internalState.keyTakenOn = new Date();
         internalState.timerMissing = setTimeout(function() {
             onKeyWentMissing();
         }, vars.MISSING_TIMEOUT);
@@ -361,6 +361,7 @@ function onKeyWentMissing() {
     logger.info('key went MISSING');
 
     state.keyMissing = true;
+    state.keyMissingSince = new Date();
     internalState.timerMissing = setTimeout(function() {
         onKeyMissingMail();
     }, vars.MISSING_MAIL_TIMEOUT);
@@ -377,7 +378,7 @@ function onKeyMissingMail() {
     internalState.timerMissing = undefined;
 
     // send mail to EVERYONE!
-    var diff = moment.duration(moment(state.keyTakenOn).diff(moment())).humanize();
+    var diff = moment.duration(moment(internalState.keyTakenOn).diff(moment())).humanize();
     //sendMissingMail({}, {"missing_since": diff});
 }
 
@@ -389,7 +390,8 @@ function onKeyReturned() {
 
         state.keyPresent = true;
         state.keyMissing = false;
-        state.keyTakenOn = undefined;
+        state.keyMissingSince = undefined;
+        internalState.keyTakenOn = undefined;
         if (internalState.timerMissing) {
             clearTimeout(internalState.timerMissing);
         }
@@ -486,7 +488,7 @@ io.on('connection', function (socket) {
         logger.info('a client disconnected (%s)', socket.id);
         // delay cleaning up to support browser reload
         setTimeout(function() {
-            if (removeFromConnectionList(clientId, socket.id)) {
+            if (removeFromConnectionList(clientId, socket.id) && !hipchatIntegration.isHipchatUser(clientId)) {
                 logger.info('last connection for client %s - cleaning up', clientId);
                 removeFromQueue(clientId);
             }

@@ -44,7 +44,10 @@
         },
         "url": "{{BASE_URL}}/dialog.html",
         "options": {
-          "size": "small"
+          "size": {
+            "width": "500px",
+            "height": "160px"
+          }
         }
       }
     ]

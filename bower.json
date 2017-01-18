@@ -15,13 +15,19 @@
     "angular-cookies": "~1.4.14",
     "angular-material": "~0.9.8",
     "bootstrap": "~3.3.7",
-    "jquery": "~2.2.4"
+    "jquery": "~2.2.4",
+    "moment": "~2.17.1"
   },
   "install": {
     "path": "lib",
     "sources": {
       "bootstrap": [
         "bower_components/bootstrap/dist/**"
+      ],
+      "moment": [
+        "bower_components/moment/moment.js",
+        "bower_components/moment/locale/de.js"
+
       ]
     }
   },

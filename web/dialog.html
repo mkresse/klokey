@@ -6,6 +6,32 @@
 </head>
 <body ng-app="klokey" ng-controller="DialogController" ng-cloak>
 
+    <div class="state-text">
+        <span ng-if="state.keyPresent && state.queue.length == 0">
+            Der Kloschlüssel ist frei.
+        </span>
+
+        <span ng-if="state.keyPresent && state.queue.length > 0 && state.queue[0].clientId == clientId">
+            Der Kloschlüssel ist die nächsten {{remainingTime}}s für <strong>dich</strong> reserviert.
+        </span>
+
+        <span ng-if="state.keyPresent && state.queue.length == 1 && state.queue[0].clientId != clientId">
+            Eine Person wartet auf den Kloschlüssel.
+        </span>
+
+        <span ng-if="state.keyPresent && state.queue.length > 1 && state.queue[0].clientId != clientId">
+            {{state.queue.length}} Personen warten auf den Kloschlüssel.
+        </span>
+
+        <span ng-if="!state.keyPresent && !state.keyMissing">
+            Der Kloschlüssel ist gerade unterwegs.
+        </span>
+
+        <span ng-if="!state.keyPresent && state.keyMissing">
+            Der Kloschlüssel wird seit {{keyMissingSince}} vermisst.
+        </span>
+    </div>
+
     <div class="container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
         <div class="state-wrapper">
             <div class="state free" ng-if="state.keyPresent && state.queue.length == 0">Frei</div>
@@ -28,15 +54,15 @@
         <button ng-click="leaveQueue()" ng-disabled="!isInQueue">Freigeben</button>
     </div>
 
-    <div>
+    <div class="debug">
         {{state}}
     </div>
 
-    <div>
+    <!-- div>
         <ul>
             <li ng-repeat="item in messages">{{item.type}} {{item.state}}</li>
         </ul>
-    </div>
+    </div -->
 
     <script src="/socket.io/socket.io.js"></script>
     <script type="text/javascript" src="lib/jquery/jquery.js"></script>
@@ -44,6 +70,8 @@
     <script type="text/javascript" src="lib/angular-animate/angular-animate.js"></script>
     <script type="text/javascript" src="lib/angular-aria/angular-aria.js"></script>
     <script type="text/javascript" src="lib/angular-material/angular-material.js"></script>
+    <script type="text/javascript" src="lib/moment/moment.js"></script>
+    <script type="text/javascript" src="lib/moment/de.js"></script>
 
     <script type="text/javascript" src="app.js"></script>
 </body>
