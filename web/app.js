@@ -184,7 +184,7 @@ app.controller("DialogController", function($scope, KloKeyService) {
             var now = Date.now();
             if ($scope.expiresAt && $scope.expiresAt > now) {
                 var expiresIn = $scope.expiresAt - now;
-                $scope.remainingTime = (expiresIn / 1000).toFixed(0);
+                $scope.remainingTime = Math.ceil((expiresIn / 1000));
                 $scope.remainingPercent = (expiresIn / $scope.expiryTime) * 100;
                 setTimeout(updateQueueTimer, 100);
             } else {

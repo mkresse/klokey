@@ -12,7 +12,7 @@
         </span>
 
         <span ng-if="state.keyPresent && state.queue.length > 0 && state.queue[0].clientId == clientId">
-            Der Kloschlüssel ist die nächsten {{remainingTime}}s für <strong>dich</strong> reserviert.
+            Der Kloschlüssel ist die nächsten {{remainingTime}}s <strong>für dich</strong> reserviert.
         </span>
 
         <span ng-if="state.keyPresent && state.queue.length == 1 && state.queue[0].clientId != clientId">
@@ -35,7 +35,7 @@
     <div class="container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
         <div class="state-wrapper">
             <div class="state free" ng-if="state.keyPresent && state.queue.length == 0">Frei</div>
-            <div class="state reserved" ng-if="state.keyPresent && state.queue.length > 0" title="{{remainingTime}}s">
+            <div class="state reserved" ng-if="state.keyPresent && state.queue.length > 0" title="{{remainingTime}}s" ng-class="{'first': state.queue[0].clientId == clientId}">
                 Reserviert
                 <div class="timer" ng-if="expiresAt">
                     <div class="bar" ng-style="{width: remainingPercent + '%'}"></div>

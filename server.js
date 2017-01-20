@@ -40,7 +40,7 @@ var vars = {
     MISSING_MAIL_TIMEOUT: 3000,
     RFID_WATCHDOG_TIMEOUT: 3500,
     QUEUE_TIMEOUT: 10000,
-    ANIM_TIME: 200
+    ANIM_TIME: 250
 };
 
 moment.locale('de');
@@ -248,10 +248,12 @@ function queueTimerAnimation() {
     var phaseTime = vars.QUEUE_TIMEOUT / 6;
     var color = Chromath.yellow.darken(0.4);
 
+    var startedForTimer = internalState.timerQueue;
+
     var doTicks = true;
     var ticks = 0;
     var tick = function() {
-        if (internalState.timerQueue) {
+        if (internalState.timerQueue === startedForTimer) {
             anim.addAmination(anim.CENTER, Chromath.rgba(0,0,0,0), ++ticks%2 ? Chromath.orange.darken(0.2) : Chromath.black, vars.ANIM_TIME, null, 1);
             if (doTicks || ticks%2) {
                 setTimeout(tick, 500);
@@ -260,7 +262,7 @@ function queueTimerAnimation() {
     };
 
     var nextPhase = function() {
-        if (internalState.timerQueue && (phase < 7)) {
+        if (internalState.timerQueue === startedForTimer && (phase < 7)) {
             anim.addAmination(p2l(phase), color, Chromath.black, phaseTime, null, 1);
             phase++;
             if (phase < 6) {
@@ -269,6 +271,7 @@ function queueTimerAnimation() {
         }
     };
 
+    anim.clearQueue();
     anim.addAmination(anim.RING, Chromath.rgba(0,0,0,0), color, vars.ANIM_TIME, null, 1);
     tick();
     nextPhase();

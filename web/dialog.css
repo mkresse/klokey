@@ -51,6 +51,10 @@ body {
     background-color: rgba(138, 138, 0, 0.66);
 }
 
+.state.reserved.first {
+    background-color: rgba(0, 138, 0, 0.66);
+}
+
 /* state change animation */
 
 .state.ng-enter {
