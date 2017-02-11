@@ -246,7 +246,7 @@ function p2l(phase) {
 function queueTimerAnimation() {
     var phase = 0;
     var phaseTime = vars.QUEUE_TIMEOUT / 6;
-    var color = Chromath.yellow.darken(0.4);
+    var color = Chromath.rgb(0.65, 0.5, 0);
 
     var startedForTimer = internalState.timerQueue;
 
@@ -295,13 +295,41 @@ function queueTimerAnimation() {
 //    timer();
 //}, 1000);
 
+
+var missingAnimTimer;
+
+function missingStateAnimation() {
+    var red_low = Chromath.rgb(0.6, 0, 0, 1);
+    var red_high = Chromath.rgb(0.9, 0, 0, 1);
+    var gamma = 1;
+
+    var red_up = function() {
+        anim.addAmination(anim.RING, Chromath.rgba(0,0,0,0), red_high, 1000, red_down, gamma);
+    };
+
+    var red_down = function() {
+        anim.addAmination(anim.RING, red_low, red_high, 1000, null, -gamma);
+    };
+
+    anim.clearQueue();
+    anim.addAmination(anim.RING, Chromath.rgba(0,0,0,0), red_low, vars.ANIM_TIME, null, 1);
+
+    var startedTimer = (missingAnimTimer = setInterval(function() {
+        if (startedTimer === missingAnimTimer) {
+            red_up();
+        } else {
+            clearInterval(startedTimer);
+        }
+    }, 4000));
+}
+
 function updateDisplayState() {
 
     if (state.keyMissing) {
-        anim.clearQueue();
-        anim.addAmination(anim.CENTER, Chromath.rgba(0,0,0,0), Chromath.black, vars.ANIM_TIME, null, 1);
-        anim.addAmination(anim.RING,   Chromath.rgba(0,0,0,0), Chromath.red, vars.ANIM_TIME, null, 1);
+        missingStateAnimation();
     } else {
+        missingAnimTimer = undefined;
+
         if (state.keyPresent) {
             if (state.queue.length === 0) {
                 anim.clearQueue();
