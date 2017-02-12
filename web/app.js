@@ -164,6 +164,8 @@ app.controller("MainController", function($scope, KloKeyService) {
 app.controller("DialogController", function($scope, KloKeyService) {
     var socket = KloKeyService.socket;
 
+    $scope.isDarkTheme = location.href.lastIndexOf("theme=dark") >= 0;
+
     $scope.clientId = null;
     $scope.state = {};
     $scope.messages = [];

@@ -21,9 +21,12 @@
             margin: 10px auto;
             width: 120px;
         }
+        body.dark-theme {
+            color: #aaa;
+        }
     </style>
 </head>
-<body ng-app="klokey" ng-controller="DialogController" ng-cloak>
+<body ng-app="klokey" ng-controller="DialogController" ng-cloak ng-class="{'dark-theme': isDarkTheme}">
 
 
 <section class="aui-connect-page aui-connect-page-focused" role="main">
