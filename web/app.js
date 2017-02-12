@@ -17,11 +17,12 @@ var messages = {
 };
 
 
-var app = angular.module('klokey', ['ngMaterial', 'ngAnimate']);
+var app = angular.module('klokey', ['ngAnimate']);
 
 app.factory('KloKeyService', function() {
     var kloKeyService = this;
     var notifications = [];
+    var reservationNotification;
 
     var socket = io();
 
@@ -31,7 +32,7 @@ app.factory('KloKeyService', function() {
         Notification.requestPermission(function (permission) {
             if (permission === "granted") {
                 notifications.push(new Notification("Toilettenschlüssel ist weg",
-                    {tag: 'keyMissing', body: 'Der Toilettenschlüssel ist weg. Bitte checke mal deine Hosentaschen.', icon:'/klo.jpg'}));
+                    {tag: 'keyMissing', body: 'Der Toilettenschlüssel wird vermisst. Bitte check\' doch mal deine Hosentaschen.', icon:'/klo.jpg'}));
             }
         });
     };
@@ -39,7 +40,7 @@ app.factory('KloKeyService', function() {
     kloKeyService.notifyKeyReturned = function() {
         Notification.requestPermission(function (permission) {
             if (permission === "granted") {
-                var returnedNotification = new Notification("Schüssel zurück",
+                var returnedNotification = new Notification("Alles cool, der Schlüssel ist wieder da.",
                     {tag: 'keyMissing', icon:'/klo.jpg'});
                 setTimeout(function() {
                     returnedNotification.close();
@@ -51,6 +52,23 @@ app.factory('KloKeyService', function() {
             n.close();
         });
         notifications = [];
+    };
+
+    kloKeyService.notifyReservationReady = function(remainingTime) {
+        Notification.requestPermission(function (permission) {
+            if (permission === "granted") {
+                reservationNotification = new Notification("Schlüssel bereit",
+                    {tag: 'keyReady', body: 'Der Toilettenschlüssel liegt ab jetzt für die nächsten '+remainingTime+
+                    ' Sekunden für dich bereit.', icon:'/golden_key_icon.png'});
+            }
+        });
+    };
+
+    kloKeyService.closeReservationReadyNotification = function() {
+        if (reservationNotification) {
+            reservationNotification.close();
+            reservationNotification = null;
+        }
     };
 
     kloKeyService.isInQueue = function(queue, clientId) {
@@ -156,6 +174,8 @@ app.controller("DialogController", function($scope, KloKeyService) {
     socket.on('message', function (data) {
         console.log('received message: ', data);
 
+        var wasMissing = $scope.state && $scope.state.keyMissing;
+
         $scope.clientId = data.clientId || $scope.clientId;
         $scope.state = data.state;
         $scope.messages.push(data);
@@ -163,6 +183,10 @@ app.controller("DialogController", function($scope, KloKeyService) {
 
         if (data.type === messages.EV_RESERVATION_REMOVED) {
             $scope.reservationSuccess = data.success;
+        } else if (data.type === messages.EV_KEY_WENT_MISSING) {
+            KloKeyService.notifyKeyMissing();
+        } else if (data.type === messages.EV_KEY_RETURNED && wasMissing) {
+            KloKeyService.notifyKeyReturned();
         }
 
         if (data.state.keyMissingSince) {
@@ -192,6 +216,15 @@ app.controller("DialogController", function($scope, KloKeyService) {
             }
             $scope.$apply();
         }
+
+        if (data.state.keyPresent && data.state.queue.length > 0 && data.state.queue[0].clientId === $scope.clientId) {
+            console.log("READY!");
+            KloKeyService.notifyReservationReady($scope.remainingTime);
+        } else {
+            KloKeyService.closeReservationReadyNotification();
+        }
+
+
 
         $scope.$apply();
     });

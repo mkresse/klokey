@@ -323,8 +323,6 @@ function statusContentFromState(state) {
     } else {
         if (state.keyMissing) {
             statusValue = {"label": "VERMISST", "type": "error"};
-        } else if (!state.keyTakenOn) {
-            statusValue = {"label": "UNKLAR", "type": "moved"};
         } else {
             statusValue = {"label": "BESETZT", "type": "current"};
         }

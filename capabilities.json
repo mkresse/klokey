@@ -11,7 +11,7 @@
   "key": "com.espresto.klokey",
   "capabilities": {
     "installable": {
-      "allowGlobal": false,
+      "allowGlobal": true,
       "allowRoom": true,
       "callbackUrl": "{{BASE_URL}}/installed",
       "updateCallbackUrl": "{{BASE_URL}}/updated"
@@ -27,8 +27,8 @@
           "value": "Cooles KloKey addon glance"
         },
         "queryUrl": "{{BASE_URL}}/glance",
-        "key": "myaddon-glance",
-        "target": "myaddon-dialog",
+        "key": "klokey-glance",
+        "target": "klokey-sidebar",
         "icon": {
           "url": "{{BASE_URL}}/golden_key_icon.png",
           "url@2x": "{{BASE_URL}}/golden_key_icon.png"
@@ -38,7 +38,7 @@
     ],
     "dialog": [
       {
-        "key": "myaddon-dialog",
+        "key": "klokey-dialog",
         "title": {
           "value": "KloKey Warteschlange"
         },
@@ -49,6 +49,16 @@
             "height": "160px"
           }
         }
+      }
+    ],
+    "webPanel": [
+      {
+        "key": "klokey-sidebar",
+        "name": {
+          "value": "KloKey Sidebar"
+        },
+        "location": "hipchat.sidebar.right",
+        "url": "{{BASE_URL}}/sidebar.html"
       }
     ]
   }
