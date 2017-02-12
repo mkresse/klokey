@@ -109,6 +109,16 @@ var state = {
     queue: []
 };
 
+if (nconf.get('debugMode')) {
+    state.debugMode = true;
+
+    vars.MISSING_TIMEOUT = 5000;
+    vars.MISSING_MAIL_TIMEOUT = 3000;
+    vars.QUEUE_TIMEOUT = 10000;
+
+    logger.warn('Debug mode enabled: ignoring sensor, omitting email!');
+}
+
 var internalState = {
     keyTakenOn: undefined,
     timerMissing: undefined,
@@ -347,13 +357,15 @@ function updateDisplayState() {
 }
 
 sensor.on('RFIDWatchdogExpired', function() {
-    logger.info('RFID timer expired, assuming key taken');
+    if (!state.debugMode) {
+        logger.info('RFID timer expired, assuming key taken');
 
-    onKeyTaken();
+        onKeyTaken();
+    }
 });
 
 sensor.on('RFIDDataReceived', function() {
-    if (!state.keyPresent) {
+    if (!state.keyPresent && !state.debugMode) {
         onKeyReturned();
     }
 });
@@ -408,9 +420,11 @@ function onKeyMissingMail() {
 
     internalState.timerMissing = undefined;
 
-    // send mail to EVERYONE!
-    var diff = moment.duration(moment(internalState.keyTakenOn).diff(moment())).humanize();
-    //sendMissingMail({}, {"missing_since": diff});
+    if (!state.debugMode) {
+        // send mail to EVERYONE!
+        var diff = moment.duration(moment(internalState.keyTakenOn).diff(moment())).humanize();
+        //sendMissingMail({}, {"missing_since": diff});
+    }
 }
 
 function onKeyReturned() {
