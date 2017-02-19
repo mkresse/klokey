@@ -11,7 +11,7 @@ body {
     width: 200px;
 }
 
-.container {
+.flex-container {
     display: flex;
     flex-direction: row-reverse;
     height: 60px;
@@ -81,7 +81,7 @@ body {
 
 
 .timer {
-    height: 2px;
+    height: 4px;
     bottom: 7px;
     position: relative;
     margin: 0 4px;

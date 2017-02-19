@@ -25,7 +25,7 @@ var hipchat = require('./hipchat.js');
 
 var logger = new (winston.Logger)({
     transports: [
-        new (winston.transports.Console)({'timestamp':true, level: 'debug' }),
+        new (winston.transports.Console)({'timestamp':true, level: 'info' }),
         new (winston.transports.File)({'timestamp':true, filename: 'server.log', level: 'debug', json: false })
     ]
 });

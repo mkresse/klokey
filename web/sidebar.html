@@ -75,7 +75,7 @@
             </span>
         </div>
 
-        <div class="container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
+        <div class="flex-container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
             <div><img src="golden_key_icon.png" width="30"></div>
             <div class="person" ng-repeat="person in state.queue track by person.clientId" ng-class="{'self': person.clientId == clientId}" title="{{person.clientId}}">
             </div>

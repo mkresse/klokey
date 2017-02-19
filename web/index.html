@@ -1,111 +1,84 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="de">
 <head>
-    <title>KloKey</title>
-    <style type="text/css">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        @font-face {
-            font-family:"icomoon";
-            src:url("https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.eot");
-            font-weight:normal;
-            font-style:normal;
-        }
-        @font-face {
-            font-family: 'icomoon';
-            src:url('https://rawgit.com/angular/material/master/docs/app/fonts/icomoon.eot?-cmq1um');
-            src:url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.eot?#iefix-cmq1um') format('embedded-opentype'),
-            url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.woff?-cmq1um') format('woff'),
-            url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.ttf?-cmq1um') format('truetype'),
-            url('https://cdn.rawgit.com/angular/material/master/docs/app/fonts/icomoon.svg?-cmq1um#icomoon') format('svg');
-            font-weight: normal;
-            font-style: normal;
-        }
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
 
+    <title>KloKey App</title>
 
-        .state.ng-enter, .state.ng-leave {
-            -webkit-transition:all linear 0.2s;
-            transition:all linear 0.2s;
-        }
+    <!-- Bootstrap core CSS -->
+    <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
-        .state.ng-enter, .state.ng-leave.ng-leave-active {
-            opacity: 0;
-        }
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <!-- link href="../../assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet" -->
 
-        .state.ng-leave, .state.ng-enter.ng-enter-active {
-            opacity: 1;
-        }
-
-        .container {
-            position: relative;
-            height: 80px;
-        }
-
-        .state {
-            position: absolute;
-            top: 0;
-        }
-
-        div {
-            xborder: 1px solid red;
-        }
-
-        li.self {
-            font-weight: bold;
-            color: fuchsia;
-        }
-
-        h1 small {
-           font-size: small;
-        }
-    </style>
-    <link rel="stylesheet" href="lib/angular-material/angular-material.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=RobotoDraft:300,400,500,700,400italic">
-    <meta name="viewport" content="initial-scale=1" />
+    <!-- Custom styles for this template -->
+    <link href="dialog.css" rel="stylesheet">
 </head>
 
-<body ng-app="klokey" layout="column">
+<body ng-app="klokey" ng-controller="DialogController" ng-cloak>
 
-
-<md-toolbar layout="row">
-    <div class="md-toolbar-tools">
-        <md-button ng-click="toggleSidenav('left')" hide-gt-sm class="md-icon-button">
-            <md-icon aria-label="Menu" md-svg-icon="https://s3-us-west-2.amazonaws.com/s.cdpn.io/68133/menu.svg"></md-icon>
-        </md-button>
-        <h1>KloKey</h1>
+<!-- Begin page content -->
+<div class="container">
+    <div class="page-header">
+        <h1>KloKey!</h1>
     </div>
-</md-toolbar>
 
-<div layout="row" flex>
-    <!-- md-sidenav layout="column" class="md-sidenav-left md-whiteframe-z2" md-component-id="left" md-is-locked-open="$mdMedia('gt-sm')">
+    <div class="state-text">
+        <p class="lead">
+        <span ng-if="state.keyPresent && state.queue.length == 0">
+            Der Kloschlüssel ist frei.
+        </span>
 
-    </md-sidenav -->
+        <span ng-if="state.keyPresent && state.queue.length > 0 && state.queue[0].clientId == clientId">
+            Der Kloschlüssel ist die nächsten {{remainingTime}}s <strong>für dich</strong> reserviert.
+        </span>
 
-    <div layout="column" flex id="content" ng-controller="MainController">
-        <md-content layout="column" flex class="md-padding">
-            <div class="container">
-                <div ng-if="state">
-                    <h1 id="present" class="state" ng-if="state.keyPresent" class="md-display-3">Frei</h1>
-                    <h1 id="taken" class="state" ng-if="!state.keyPresent" class="md-display-3">Unterwegs...
+        <span ng-if="state.keyPresent && state.queue.length == 1 && state.queue[0].clientId != clientId">
+            Eine Person wartet auf den Kloschlüssel.
+        </span>
 
-                        <small id="lost"  ng-if="state.keyMissing" class="md-display-1">Vermisst</small>
-                    </h1>
+        <span ng-if="state.keyPresent && state.queue.length > 1 && state.queue[0].clientId != clientId">
+            {{state.queue.length}} Personen warten auf den Kloschlüssel.
+        </span>
 
-                    <md-icon md-font-icon="icon-home"></md-icon>
+        <span ng-if="!state.keyPresent && !state.keyMissing">
+            Der Kloschlüssel ist gerade unterwegs.
+        </span>
 
+        <span ng-if="!state.keyPresent && state.keyMissing">
+            Der Kloschlüssel wird seit {{keyMissingSince}} vermisst.
+        </span>
+        </p>
+    </div>
+
+    <div class="flex-container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
+        <div class="state-wrapper">
+            <div class="state free" ng-if="state.keyPresent && state.queue.length == 0">Frei</div>
+            <div class="state reserved" ng-if="state.keyPresent && state.queue.length > 0" title="{{remainingTime}}s" ng-class="{'first': state.queue[0].clientId == clientId}">
+                Reserviert
+                <div class="timer" ng-if="expiresAt">
+                    <div class="bar" ng-style="{width: remainingPercent + '%'}"></div>
                 </div>
-
-
             </div>
-            <ul>
-                <li ng-repeat="entry in state.queue" ng-class="{'self': entry.clientId == clientId}">{{entry.clientId}}
-                <span ng-if="entry.remaining">{{entry.remaining}}</span>
-                </li>
-            </ul>
-            <md-button class="md-accent" ng-click="enqueue()">{{isInQueue ? 'Weggehen' : 'Anstellen'}}</md-button>
-            <div>{{state}}</div>
+            <div class="state taken" ng-if="!state.keyPresent && !state.keyMissing">Besetzt</div>
+            <div class="state missing" ng-if="!state.keyPresent && state.keyMissing">Vermisst</div>
+        </div>
 
-        </md-content>
+        <div class="person" ng-repeat="person in state.queue track by person.clientId" ng-class="{'self': person.clientId == clientId}" title="{{person.clientId}}">
+        </div>
     </div>
+
+    <div class="buttons">
+        <button type="button" class="btn btn-default" ng-click="enqueue()" ng-disabled="isInQueue">Reservieren</button>
+        <button type="button" class="btn btn-default" ng-click="leaveQueue()" ng-disabled="!isInQueue">Freigeben</button>
+    </div>
+
 </div>
 
 
@@ -115,9 +88,9 @@
 <script type="text/javascript" src="lib/angular/angular.js"></script>
 <script type="text/javascript" src="lib/angular-animate/angular-animate.js"></script>
 <script type="text/javascript" src="lib/angular-aria/angular-aria.js"></script>
-<script type="text/javascript" src="lib/angular-material/angular-material.js"></script>
+<script type="text/javascript" src="lib/moment/moment.js"></script>
+<script type="text/javascript" src="lib/moment/de.js"></script>
 
 <script type="text/javascript" src="app.js"></script>
-
 </body>
 </html>
