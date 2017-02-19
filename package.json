@@ -1,6 +1,7 @@
 {
   "name": "klokey-server",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "author": "Martin Kresse",
   "description": "my awesome klokey app",
   "dependencies": {
     "body-parser": "^1.15.2",
