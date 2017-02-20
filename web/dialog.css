@@ -81,7 +81,8 @@ body {
 
 
 .timer {
-    height: 4px;
+    box-sizing: content-box;
+    height: 2px;
     bottom: 7px;
     position: relative;
     margin: 0 4px;
