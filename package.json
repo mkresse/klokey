@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "author": "Martin Kresse",
   "description": "my awesome klokey app",
+  "license": "GPL-3.0",
   "dependencies": {
     "body-parser": "^1.15.2",
     "bower": "^1.8.0",
