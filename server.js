@@ -36,10 +36,10 @@ var vars = {
     SESSION_NAME: 'kk_sess',
     SESSION_KEY: 'secr3t',
     CLEANUP_DELAY: 3000,
-    MISSING_TIMEOUT: 5000,
-    MISSING_MAIL_TIMEOUT: 3000,
+    MISSING_TIMEOUT: 15 * 60 * 1000,
+    MISSING_MAIL_TIMEOUT: 1 * 60 * 1000,
     RFID_WATCHDOG_TIMEOUT: 3500,
-    QUEUE_TIMEOUT: 10000,
+    QUEUE_TIMEOUT: 30000,
     ANIM_TIME: 250
 };
 
@@ -423,7 +423,7 @@ function onKeyMissingMail() {
     if (!state.debugMode) {
         // send mail to EVERYONE!
         var diff = moment.duration(moment(internalState.keyTakenOn).diff(moment())).humanize();
-        //sendMissingMail({}, {"missing_since": diff});
+        sendMissingMail({}, {"missing_since": diff});
     }
 }
 
