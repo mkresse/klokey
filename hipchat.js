@@ -291,7 +291,7 @@ function performRequest(httpOptions, room) {
                     logger.debug("request - success: ", httpOptions, body);
                     resolve(body);
                 } else {
-                    logger.error("request - wrong status code: ", response.statusCode);
+                    logger.error("request - wrong status code: " + response.statusCode, httpOptions);
                     reject("wrong status code: " + response.statusCode, httpOptions);
                     if (room && response.statusCode === 401) {
                         // force token update next time

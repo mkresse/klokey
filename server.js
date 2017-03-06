@@ -453,16 +453,22 @@ function onKeyReturned() {
 function onEnqueueRequest(clientId, replyFn) {
     logger.info('enqueue requested from %s', clientId);
     if (addToQueue(clientId)) {
-        replyFn('DONE!' + clientId);
+        if (replyFn) {
+            replyFn('DONE!' + clientId);
+        }
     } else {
-        replyFn('FAIL! mayby already enqueued, client ' + clientId);
+        if (replyFn) {
+            replyFn('FAIL! mayby already enqueued, client ' + clientId);
+        }
     }
 }
 
 function onLeaveQueueRequest(clientId, replyFn) {
     logger.info('leave queue requested from %s', clientId);
     removeFromQueue(clientId);
-    replyFn('DONE! ' + clientId);
+    if (replyFn) {
+        replyFn('DONE! ' + clientId);
+    }
 }
 
 function getConnectionList(clientId) {
