@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-hipchat/0.0.3/css/aui-hipchat.min.css"></link>
+    <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="//aui-cdn.atlassian.com/aui-hipchat/0.0.3/js/aui-hipchat.min.js"></script>
+    <link rel="stylesheet" href="dialog.css">
+    <style>
+        .state-wrapper {
+            display: table;
+            margin: 0 auto;
+        }
+        .container img {
+            margin-top: 10px;
+        }
+
+        .state-text {
+            min-height: 60px;
+        }
+        .debug-warning {
+            margin: 10px auto;
+            width: 120px;
+        }
+        body.dark-theme {
+            color: #aaa;
+        }
+    </style>
+</head>
+<body ng-app="klokey" ng-controller="DialogController" ng-cloak ng-class="{'dark-theme': isDarkTheme}">
+
+
+<section class="aui-connect-page aui-connect-page-focused" role="main">
+
+    <section class="aui-connect-content">
+
+        <div class="debug-warning" ng-if="state.debugMode">
+            <span class="aui-lozenge aui-lozenge-current" >DEBUG MODE!</span>
+        </div>
+
+        <div class="state-wrapper">
+            <div class="state free" ng-if="state.keyPresent && state.queue.length == 0">Frei</div>
+            <div class="state reserved" ng-if="state.keyPresent && state.queue.length > 0" title="{{remainingTime}}s" ng-class="{'first': state.queue[0].clientId == clientId}">
+                Reserviert
+                <div class="timer" ng-if="expiresAt">
+                    <div class="bar" ng-style="{width: remainingPercent + '%'}"></div>
+                </div>
+            </div>
+            <div class="state taken" ng-if="!state.keyPresent && !state.keyMissing">Besetzt</div>
+            <div class="state missing" ng-if="!state.keyPresent && state.keyMissing">Vermisst</div>
+        </div>
+
+        <div class="state-text">
+            <span ng-if="state.keyPresent && state.queue.length == 0">
+                Der Kloschlüssel ist frei.
+            </span>
+
+            <span ng-if="state.keyPresent && state.queue.length > 0 && state.queue[0].clientId == clientId">
+                Der Kloschlüssel ist die nächsten {{remainingTime}}s <strong>für dich</strong> reserviert.
+            </span>
+
+            <span ng-if="state.keyPresent && state.queue.length == 1 && state.queue[0].clientId != clientId">
+                Eine Person wartet auf den Kloschlüssel.
+            </span>
+
+            <span ng-if="state.keyPresent && state.queue.length > 1 && state.queue[0].clientId != clientId">
+                {{state.queue.length}} Personen warten auf den Kloschlüssel.
+            </span>
+
+            <span ng-if="!state.keyPresent && !state.keyMissing">
+                Der Kloschlüssel ist gerade unterwegs.
+            </span>
+
+            <span ng-if="!state.keyPresent && state.keyMissing">
+                Der Kloschlüssel wird seit {{keyMissingSince}} vermisst.
+            </span>
+        </div>
+
+        <div class="flex-container" ng-class="{'leave-right': reservationSuccess, 'leave-down': !reservationSuccess}">
+            <div><img src="golden_key_icon.png" width="30"></div>
+            <div class="person" ng-repeat="person in state.queue track by person.clientId" ng-class="{'self': person.clientId == clientId}" title="{{person.clientId}}">
+            </div>
+        </div>
+
+        <div class="aui-connect-content-inner">
+            <button class="aui-button aui-button-primary" ng-click="enqueue()" ng-show="!isInQueue">Reservieren</button>
+            <button class="aui-button aui-button-primary" ng-click="leaveQueue()" ng-show="isInQueue">Freigeben</button>
+        </div>
+    </section>
+</section>
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="lib/angular/angular.min.js"></script>
+<script type="text/javascript" src="lib/angular-animate/angular-animate.min.js"></script>
+<script type="text/javascript" src="lib/angular-aria/angular-aria.min.js"></script>
+<script type="text/javascript" src="lib/moment/moment.min.js"></script>
+<script type="text/javascript" src="lib/moment/de.js"></script>
+
+<script type="text/javascript" src="app.js"></script>
+
+</body>
+</html>

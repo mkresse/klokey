@@ -1,0 +1,25 @@
+{
+  "mail": {
+    "transport": {
+      "host": "smtp.gmail.com",
+      "port": 465,
+      "secure": true,
+      "auth": {
+        "user": "example@gmail.com",
+        "pass": "verysecret"
+      },
+      "logger": true,
+      "debug": true
+    },
+    "from": "Klokey <example@gmail.com>",
+    "to": "Everyone <all@gmail.com>"
+  },
+  "hipchat": {
+    "base_url": "https://addon.example.com",
+    "server": "https://hipchat.example.com"
+  },
+  "port": 443,
+  "privateKey": "/path/to/privatekey.pem",
+  "certificate": "/path/to/certificate.pem",
+  "debugMode": false
+}

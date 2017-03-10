@@ -1,0 +1,48 @@
+{
+  "name": "KloKey",
+  "version": "0.0.1",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.6.0",
+    "angular-animate": "~1.6.0",
+    "angular-cookies": "~1.6.0",
+    "bootstrap": "~3.3.7",
+    "jquery": "~2.2.4",
+    "moment": "~2.17.1"
+  },
+  "install": {
+    "path": "lib",
+    "sources": {
+      "angular": [
+        "bower_components/angular/angular.min.js"
+      ],
+      "angular-animate": [
+        "bower_components/angular-animate/angular-animate.min.js"
+      ],
+      "angular-aria": [
+        "bower_components/angular-aria/angular-aria.min.js"
+      ],
+      "bootstrap": [
+        "bower_components/bootstrap/dist/**"
+      ],
+      "jquery": [
+        "bower_components/jquery/dist/jquery.min.js"
+      ],
+      "moment": [
+        "bower_components/moment/min/moment.min.js",
+        "bower_components/moment/locale/de.js"
+      ]
+    }
+  },
+  "devDependencies": {},
+  "resolutions": {
+    "angular": "~1.6.0"
+  }
+}

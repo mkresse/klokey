@@ -1,0 +1,36 @@
+{
+  "name": "klokey-server",
+  "version": "1.0.0",
+  "author": "Martin Kresse",
+  "description": "my awesome klokey app",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mkresse/klokey.git"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "bower": "^1.8.0",
+    "bower-installer": "^1.2.0",
+    "chromath": "0.0.7",
+    "cookie-session": "^1.2.0",
+    "email-templates": "^2.5.4",
+    "express": "^4.14.0",
+    "handlebars": "^3.0.0",
+    "https": "^1.0.0",
+    "jwt-simple": "^0.5.1",
+    "moment": "^2.16.0",
+    "nconf": "^0.8.4",
+    "nodemailer": "^2.6.4",
+    "onoff": "^1.1.1",
+    "promise": "^7.1.1",
+    "request": "^2.79.0",
+    "request-debug": "^0.2.0",
+    "rpi-ws281x-native": "^0.4.0",
+    "serialport": "^1.7.4",
+    "shortid": "^2.2.6",
+    "socket.io": "^1.5.1",
+    "underscore": "^1.8.3",
+    "winston": "^2.3.0"
+  }
+}
