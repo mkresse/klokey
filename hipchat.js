@@ -141,7 +141,7 @@ exports.init = function(app, options, state, serverLogger) {
                 var glanceData = {
                     "glance": [
                         {
-                            "key": "myaddon-glance",
+                            "key": "klokey-glance",
                             "content": statusContentFromState(state)
                         }
                     ]
@@ -179,7 +179,7 @@ exports.init = function(app, options, state, serverLogger) {
             sendGlanceUpdate();
             sendNotification({
                 "color": "red",
-                "message": "Schlüssel weg",
+                "message": "Oh nein, der Kloschlüssel ist weg (sadpanda) Check doch bitte mal deine Hosentasche...",
                 "notify": true,
                 "message_format":"text"
             });
@@ -212,7 +212,7 @@ exports.init = function(app, options, state, serverLogger) {
                 wasMissing = false;
                 sendNotification({
                     "color": "green",
-                    "message": "Schlüssel zurück",
+                    "message": "Alles cool, der Kloschlüssel ist zurück. (awesome)",
                     "notify": true,
                     "message_format":"text"
                 });
