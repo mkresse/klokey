@@ -20,6 +20,7 @@
     "https": "^1.0.0",
     "jwt-simple": "^0.5.1",
     "moment": "^2.16.0",
+    "mqtt": "^2.5.0",
     "nconf": "^0.8.4",
     "nodemailer": "^2.6.4",
     "onoff": "^1.1.1",
@@ -27,10 +28,12 @@
     "request": "^2.79.0",
     "request-debug": "^0.2.0",
     "rpi-ws281x-native": "^0.4.0",
-    "serialport": "^1.7.4",
     "shortid": "^2.2.6",
     "socket.io": "^1.5.1",
     "underscore": "^1.8.3",
     "winston": "^2.3.0"
+  },
+  "optionalDependencies": {
+    "serialport": "^1.7.4"
   }
 }
