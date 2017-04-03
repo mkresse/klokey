@@ -18,8 +18,17 @@
     "base_url": "https://addon.example.com",
     "server": "https://hipchat.example.com"
   },
+  "mqtt": {
+    "enable": true,
+    "host": "127.0.0.1",
+    "port": "1883",
+    "topic": "klokey"
+  },
   "port": 443,
   "privateKey": "/path/to/privatekey.pem",
   "certificate": "/path/to/certificate.pem",
-  "debugMode": false
+  "debugMode": false,
+  "enableSSL": true,
+  "enableSensor": true,
+  "enableDisplay": true
 }

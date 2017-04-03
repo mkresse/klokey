@@ -4,7 +4,7 @@
 
 "use strict";
 
-var ws281x = require('rpi-ws281x-native');
+var ws281x;
 var winston = require('winston');
 
 var NUM_LEDS = 7,
@@ -26,6 +26,8 @@ exports.render = function() {
 
 exports.init = function(serverLogger) {
     logger = serverLogger || winston;
+
+    ws281x = require('rpi-ws281x-native');
 
     if (ws281x) {
         logger.info("********* Initializing display *********");
