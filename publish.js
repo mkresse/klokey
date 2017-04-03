@@ -8,7 +8,7 @@ var logger;
 
 exports.init = function(options, logs) {
     logger = logs;
-    if (! options.enable) {logger.info('publisher disabled'); return}
+    if (! options || ! options.enable) {logger.info('publisher disabled'); return}
 
     // setting some defaults
     _.extend({
