@@ -4,13 +4,17 @@ awesome stuff and more...
 
 ## mqtt support
 
-you can enable mqtt publishing in the config:
+you can enable mqtt publishing in the config. you can pass any mqtt options (https://www.npmjs.com/package/mqtt#client) via the options field:
 
     "mqtt": {
         "enable": true,
         "host": "127.0.0.1",
         "port": "1883",
-        "topic": "klokey"
+        "topic": "klokey",
+        "options": {
+          "username": "user",
+          "password": "secret"
+        }
     },
     
 these events will be published to the following subtopics:
