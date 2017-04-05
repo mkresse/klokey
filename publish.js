@@ -29,8 +29,9 @@ exports.init = function(options, logs) {
     topic = options.topic;
 };
 
-exports.publish = function(message, topicPostfix) {
+exports.publish = function(message, topicPostfix, retain) {
     if (! client) {return}
     if (typeof topicPostfix === 'undefined') { topicPostfix = ''; }
-    client.publish(topic + topicPostfix, message);
+    var options = {retain: !!retain};
+    client.publish(topic + topicPostfix, message, options);
 };

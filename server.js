@@ -203,6 +203,7 @@ function addToQueue(clientId) {
         updateQueueTimer();
         calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_RESERVATION_QUEUED, state: state});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyReservationQueued();
         return true;
     }
@@ -220,6 +221,7 @@ function removeFromQueue(clientId, success) {
         updateQueueTimer();
         calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state, success: success || false});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyReservationRemoved();
     }
 }
@@ -386,7 +388,7 @@ function onKeyTaken() {
         logger.warn('illegal state - ignoring taken event');
     } else {
         logger.info('key was TAKEN');
-        publisher.publish('TAKEN', '/state');
+        publisher.publish('TAKEN', '/event');
 
         state.keyPresent = false;
         internalState.keyTakenOn = new Date();
@@ -401,13 +403,14 @@ function onKeyTaken() {
         updateDisplayState();
         calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_KEY_TAKEN, state: state});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyKeyTaken();
     }
 }
 
 function onKeyWentMissing() {
     logger.info('key went MISSING');
-    publisher.publish('MISSING', '/state');
+    publisher.publish('MISSING', '/event');
 
     state.keyMissing = true;
     state.keyMissingSince = new Date();
@@ -418,12 +421,13 @@ function onKeyWentMissing() {
     updateDisplayState();
     calcQueueRemainingTime();
     io.emit('message', {type: messages.EV_KEY_WENT_MISSING, state: state});
+    publisher.publish(JSON.stringify(state), '/state', true);
     hipchatIntegration.notifyKeyMissing();
 }
 
 function onKeyMissingMail() {
     logger.info('sending missing email');
-    publisher.publish('MAIL', '/state');
+    publisher.publish('MAIL', '/event');
 
     internalState.timerMissing = undefined;
 
@@ -439,7 +443,7 @@ function onKeyReturned() {
         logger.warn('illegal state - ignoring returned event');
     } else {
         logger.info('key was RETURNED');
-        publisher.publish('RETURNED', '/state');
+        publisher.publish('RETURNED', '/event');
 
         state.keyPresent = true;
         state.keyMissing = false;
@@ -454,6 +458,7 @@ function onKeyReturned() {
 
         updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_RETURNED, state: state});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyKeyReturned();
     }
 }
