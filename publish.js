@@ -14,12 +14,19 @@ exports.init = function(options, logs) {
     _.extend({
         host: '127.0.0.1',
         port: '1883',
-        topic: 'klokey'
+        topic: 'klokey',
+        options: {}
     }, options);
 
-    client = mqtt.connect('mqtt://' + options.host + ':' + options.port);
+    client = mqtt.connect('mqtt://' + options.host + ':' + options.port, options.options);
+
+    client.on('error', function (err) {
+       logger.error('publisher', err.message);
+    }).on('connect', function () {
+        logger.info('publisher initialized');
+    });
+
     topic = options.topic;
-    logger.info('publisher initialized');
 };
 
 exports.publish = function(message, topicPostfix) {
