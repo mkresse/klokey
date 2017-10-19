@@ -30,7 +30,7 @@ these events will be published to the following subtopics:
         ENQUEUE - somebody put herself to the queue
         LEAVE   - somebody left the queue
         EXPIRED - qeue expired
-    /state
+    /event
         TAKEN   - key taken
         RETURNED - key returned
         MISSING - key is missing
@@ -39,3 +39,5 @@ these events will be published to the following subtopics:
         CONNECT - websocket client connected
         CLOSE   - websocket client closed
         DISCONNECT - websocket client disconnected
+    /state
+        - JSON representation of current state (persistent)
