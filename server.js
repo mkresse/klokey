@@ -572,6 +572,11 @@ function initServer(nconf) {
             cert: fs.readFileSync(nconf.get('certificate'))
         };
 
+        http.createServer(function (req, res) {
+            res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
+            res.end();
+        }).listen(80);
+
         return https.createServer(serverOptions, app)
     }
 
