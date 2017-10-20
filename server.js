@@ -41,7 +41,7 @@ var vars = {
     SESSION_KEY: 'secr3t',
     CLEANUP_DELAY: 3000,
     MISSING_TIMEOUT: 15 * 60 * 1000,
-    MISSING_MAIL_TIMEOUT: 1 * 60 * 1000,
+    MISSING_MAIL_TIMEOUT: 2 * 60 * 1000,
     RFID_WATCHDOG_TIMEOUT: 3500,
     QUEUE_TIMEOUT: 30000,
     ANIM_TIME: 250
@@ -261,7 +261,7 @@ function p2l(phase) {
 function queueTimerAnimation() {
     var phase = 0;
     var phaseTime = vars.QUEUE_TIMEOUT / 6;
-    var color = Chromath.rgb(0.65, 0.5, 0);
+    var color = Chromath.rgb(0, 0.1, 0.7);
 
     var startedForTimer = internalState.timerQueue;
 
