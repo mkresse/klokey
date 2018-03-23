@@ -255,7 +255,7 @@ function updateQueueTimer() {
 }
 
 function p2l(phase) {
-    return 2 << (((phase + 5) % 6));
+    return 2 << (phase % 6);
 }
 
 function queueTimerAnimation() {
