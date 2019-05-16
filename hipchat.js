@@ -123,6 +123,7 @@ exports.init = function(app, options, state, serverLogger) {
                         url: options.server + "/v2/room/" + room.installed.roomId + "/notification",
                         method: 'POST',
                         json: notifyRequest,
+                        agentOptions: { rejectUnauthorized: false },
                         auth: {
                             bearer: room.auth.access_token
                         }
@@ -151,6 +152,7 @@ exports.init = function(app, options, state, serverLogger) {
                     url: options.server + "/v2/addon/ui/room/" + room.installed.roomId,
                     method: 'POST',
                     json: glanceData,
+                    agentOptions: { rejectUnauthorized: false },
                     auth: {
                         bearer: room.auth.access_token
                     }
