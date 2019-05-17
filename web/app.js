@@ -28,6 +28,15 @@ app.factory('KloKeyService', function() {
 
     kloKeyService.socket = socket;
 
+    // Request permission before first notification
+    if (window.Notification && Notification.permission !== "granted") {
+        Notification.requestPermission(function (permission) {
+            if (permission !== "granted") {
+                console.error('Permission not granted');
+            }
+        });
+    }
+
     kloKeyService.notifyKeyMissing = function() {
         Notification.requestPermission(function (permission) {
             if (permission === "granted") {
@@ -55,13 +64,15 @@ app.factory('KloKeyService', function() {
     };
 
     kloKeyService.notifyReservationReady = function(remainingTime) {
-        Notification.requestPermission(function (permission) {
-            if (permission === "granted") {
-                reservationNotification = new Notification("Schlüssel bereit",
-                    {tag: 'keyReady', body: 'Der Toilettenschlüssel liegt ab jetzt für die nächsten '+remainingTime+
-                    ' Sekunden für dich bereit.', icon:'/golden_key_icon.png'});
-            }
-        });
+        if (!reservationNotification) {
+            Notification.requestPermission(function (permission) {
+                if (permission === "granted") {
+                    reservationNotification = new Notification("Schlüssel bereit",
+                        {tag: 'keyReady', body: 'Der Toilettenschlüssel liegt ab jetzt für die nächsten '+remainingTime+
+                        ' Sekunden für dich bereit.', icon:'/golden_key_icon.png'});
+                }
+            });
+        }
     };
 
     kloKeyService.closeReservationReadyNotification = function() {

@@ -1,5 +1,6 @@
 "use strict";
 
+var EventEmitter =  require('events').EventEmitter;
 var nconf = require('nconf');
 var winston = require('winston');
 var express = require('express');
@@ -17,11 +18,14 @@ var moment = require('moment');
 var nodemailer = require('nodemailer');
 var EmailTemplate = require('email-templates').EmailTemplate;
 var url = require('url');
-
-var sensorModule = require('./sensor.js');
-var display = require('./display.js');
 var anim = require('./anim.js');
 var hipchat = require('./hipchat.js');
+var publisher = require('./publish.js');
+
+nconf.argv().env().file({ file: 'config.json' });
+
+var sensorModule = nconf.get('enableSensor') ? require('./sensor.js') : {init:function() {return new EventEmitter()}};
+var display = nconf.get('enableDisplay') ? require('./display.js') : {init:function(){}};
 
 var logger = new (winston.Logger)({
     transports: [
@@ -37,19 +41,13 @@ var vars = {
     SESSION_KEY: 'secr3t',
     CLEANUP_DELAY: 3000,
     MISSING_TIMEOUT: 15 * 60 * 1000,
-    MISSING_MAIL_TIMEOUT: 1 * 60 * 1000,
+    MISSING_MAIL_TIMEOUT: 2 * 60 * 1000,
     RFID_WATCHDOG_TIMEOUT: 3500,
     QUEUE_TIMEOUT: 30000,
     ANIM_TIME: 250
 };
 
 moment.locale('de');
-nconf.argv().env().file({ file: 'config.json' });
-
-var serverOptions = {
-    key: fs.readFileSync(nconf.get('privateKey')),
-    cert: fs.readFileSync(nconf.get('certificate'))
-};
 
 var transporter = nodemailer.createTransport(nconf.get('mail').transport);
 var templateDir = path.join(__dirname, 'templates', 'missing');
@@ -59,6 +57,9 @@ var sendMissingMail = transporter.templateSender(new EmailTemplate(templateDir),
         "to": nconf.get('mail').to
     }
 );
+
+publisher.init(nconf.get('mqtt'), logger);
+publisher.publish('STARTED', '/server');
 
 display.init(logger);
 anim.init({interval: 10});
@@ -85,9 +86,8 @@ sensor.on('open', function() {
     }
 });
 
-
 var app = express();
-var server = https.createServer(serverOptions, app);
+var server = initServer(nconf);
 var io = socket(server);
 
 var messages = {
@@ -165,14 +165,17 @@ app.use('/lib', express.static('lib', {
 }));
 
 app.get('/state', function (req, res) {
+    publisher.publish('STATE', '/server');
     res.json(state);
 });
 
 app.get('/test', function (req, res) {
+    publisher.publish('TEST', '/server');
     res.sendFile(__dirname + '/web/test.html');
 });
 
 app.get('/switch', function (req, res) {
+    publisher.publish('SWITCH', '/server');
     if (state.keyPresent) {
         onKeyTaken();
     } else {
@@ -200,6 +203,7 @@ function addToQueue(clientId) {
         updateQueueTimer();
         calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_RESERVATION_QUEUED, state: state});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyReservationQueued();
         return true;
     }
@@ -217,6 +221,7 @@ function removeFromQueue(clientId, success) {
         updateQueueTimer();
         calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_RESERVATION_REMOVED, state: state, success: success || false});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyReservationRemoved();
     }
 }
@@ -250,13 +255,13 @@ function updateQueueTimer() {
 }
 
 function p2l(phase) {
-    return 2 << (((phase + 5) % 6));
+    return 2 << (phase % 6);
 }
 
 function queueTimerAnimation() {
     var phase = 0;
     var phaseTime = vars.QUEUE_TIMEOUT / 6;
-    var color = Chromath.rgb(0.65, 0.5, 0);
+    var color = Chromath.rgb(0, 0.1, 0.7);
 
     var startedForTimer = internalState.timerQueue;
 
@@ -372,6 +377,7 @@ sensor.on('RFIDDataReceived', function() {
 
 function onQueueTimerExpired(clientId) {
     logger.info('timer expired for client: ', clientId);
+    publisher.publish('EXPIRED', '/queue');
 
     internalState.timerQueue = undefined;
     removeFromQueue(clientId);
@@ -382,6 +388,7 @@ function onKeyTaken() {
         logger.warn('illegal state - ignoring taken event');
     } else {
         logger.info('key was TAKEN');
+        publisher.publish('TAKEN', '/event');
 
         state.keyPresent = false;
         internalState.keyTakenOn = new Date();
@@ -396,12 +403,14 @@ function onKeyTaken() {
         updateDisplayState();
         calcQueueRemainingTime();
         io.emit('message', {type: messages.EV_KEY_TAKEN, state: state});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyKeyTaken();
     }
 }
 
 function onKeyWentMissing() {
     logger.info('key went MISSING');
+    publisher.publish('MISSING', '/event');
 
     state.keyMissing = true;
     state.keyMissingSince = new Date();
@@ -412,11 +421,13 @@ function onKeyWentMissing() {
     updateDisplayState();
     calcQueueRemainingTime();
     io.emit('message', {type: messages.EV_KEY_WENT_MISSING, state: state});
+    publisher.publish(JSON.stringify(state), '/state', true);
     hipchatIntegration.notifyKeyMissing();
 }
 
 function onKeyMissingMail() {
     logger.info('sending missing email');
+    publisher.publish('MAIL', '/event');
 
     internalState.timerMissing = undefined;
 
@@ -432,6 +443,7 @@ function onKeyReturned() {
         logger.warn('illegal state - ignoring returned event');
     } else {
         logger.info('key was RETURNED');
+        publisher.publish('RETURNED', '/event');
 
         state.keyPresent = true;
         state.keyMissing = false;
@@ -446,6 +458,7 @@ function onKeyReturned() {
 
         updateDisplayState();
         io.emit('message', {type: messages.EV_KEY_RETURNED, state: state});
+        publisher.publish(JSON.stringify(state), '/state', true);
         hipchatIntegration.notifyKeyReturned();
     }
 }
@@ -500,6 +513,7 @@ io.on('connection', function (socket) {
     getConnectionList(clientId).push(socket.id);
 
     logger.info('a client connected from %s (%s)', socket.client.conn.remoteAddress, socket.id);
+    publisher.publish('CONNECT', '/client');
 
     logger.debug('connect headers', socket.request.headers);
 
@@ -522,10 +536,12 @@ io.on('connection', function (socket) {
 
         switch(msg.type) {
             case messages.REQ_ENQUEUE:
+                publisher.publish('ENQUEUE', '/queue');
                 onEnqueueRequest(clientId, replyFn);
                 break;
 
             case messages.REQ_LEAVE_QUEUE:
+                publisher.publish('LEAVE', '/queue');
                 onLeaveQueueRequest(clientId, replyFn);
                 break;
         }
@@ -533,10 +549,12 @@ io.on('connection', function (socket) {
 
     socket.on('close', function() {
         logger.info('a client closed (%s)', socket.id);
+        publisher.publish('CLOSE', '/client');
     });
 
     socket.on('disconnect', function() {
         logger.info('a client disconnected (%s)', socket.id);
+        publisher.publish('DISCONNECT', '/client');
         // delay cleaning up to support browser reload
         setTimeout(function() {
             if (removeFromConnectionList(clientId, socket.id) && !hipchatIntegration.isHipchatUser(clientId)) {
@@ -546,6 +564,24 @@ io.on('connection', function (socket) {
         }, vars.CLEANUP_DELAY);
     });
 });
+
+function initServer(nconf) {
+    if (nconf.get('enableSSL')) {
+        var serverOptions = {
+            key: fs.readFileSync(nconf.get('privateKey')),
+            cert: fs.readFileSync(nconf.get('certificate'))
+        };
+
+        http.createServer(function (req, res) {
+            res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
+            res.end();
+        }).listen(80);
+
+        return https.createServer(serverOptions, app)
+    }
+
+    return http.createServer(app);
+}
 
 server.listen(nconf.get('port'), function () {
     var addr = server.address();
