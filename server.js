@@ -1,6 +1,5 @@
 "use strict";
 
-var EventEmitter =  require('events').EventEmitter;
 var nconf = require('nconf');
 var winston = require('winston');
 var express = require('express');
@@ -24,8 +23,8 @@ var publisher = require('./publish.js');
 
 nconf.argv().env().file({ file: 'config.json' });
 
-var sensorModule = nconf.get('enableSensor') ? require('./sensor.js') : {init:function() {return new EventEmitter()}};
-var display = nconf.get('enableDisplay') ? require('./display.js') : {init:function(){}};
+var sensorModule = nconf.get('enableSensor') ? require('./sensor.js') : require('./sensor-stub.js');
+var display = nconf.get('enableDisplay') ? require('./display.js') : require('./display-stub.js');
 
 var logger = new (winston.Logger)({
     transports: [
